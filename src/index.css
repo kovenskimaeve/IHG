@@ -3,24 +3,47 @@
 @tailwind utilities;
 
 body {
-  background-color: #EFE7D2;
-  background-image:
-    radial-gradient(rgba(43,38,32,0.035) 1px, transparent 1px);
-  background-size: 3px 3px;
-  color: #2B2620;
+  background-color: #F6EFE2;
+  background-image: radial-gradient(rgba(74,58,44,0.05) 1px, transparent 1px);
+  background-size: 4px 4px;
+  color: #4A3A2C;
+}
+
+.shadow-card, .shadow-cardHover {
+  border-radius: 18px;
+}
+
+input, select, textarea, button {
+  border-radius: 12px;
 }
 
 .card-cut {
-  clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
-  border-radius: 3px;
+  border-radius: 18px;
 }
 
 .stamp {
-  font-family: 'IBM Plex Mono', monospace;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-family: 'Fraunces', serif;
+  font-style: italic;
+  letter-spacing: 0.02em;
+  color: #8A5A34;
 }
 
 .torn-edge {
-  border-bottom: 1px dashed rgba(43,38,32,0.35);
+  border-bottom: 1px solid rgba(140, 161, 132, 0.45);
+}
+
+.tilt-card {
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+.tilt-card:hover {
+  transform: perspective(700px) rotateX(2deg) rotateY(-2deg) translateY(-5px);
+}
+
+@keyframes leaf-float {
+  0%, 100% { transform: translateY(0) rotate(-3deg); }
+  50% { transform: translateY(-10px) rotate(3deg); }
+}
+.leaf-float {
+  display: inline-block;
+  animation: leaf-float 6s ease-in-out infinite;
 }
