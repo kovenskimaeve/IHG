@@ -11,8 +11,10 @@ export default function Home() {
   return (
     <div className="max-w-5xl mx-auto px-4 py-16">
       <p className="stamp text-xs text-oxblood mb-3">Est. this year · ISF student-run</p>
-      <h1 className="font-display text-5xl leading-tight mb-4 max-w-2xl">
+      <h1 className="font-display text-5xl leading-tight mb-4 max-w-2xl relative">
         Every past paper, every good explanation, kept in one place.
+        <span className="float-accent absolute -top-2 -right-6 text-2xl" aria-hidden="true" style={{ animationDelay: '0s' }}>✦</span>
+        <span className="float-accent absolute top-10 right-10 text-lg" aria-hidden="true" style={{ animationDelay: '2s' }}>✦</span>
       </h1>
       <p className="font-body text-inkSoft max-w-xl mb-12">
         Built by a student, for students. Everything here is uploaded and

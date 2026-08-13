@@ -3,15 +3,15 @@ export default {
   theme: {
     extend: {
       colors: {
-        parchment: '#F6EFE2',
-        parchmentDark: '#EFE4CF',
-        ink: '#4A3A2C',
-        inkSoft: '#7C6A57',
-        library: '#8A5A34',
-        libraryDeep: '#6B4423',
-        oxblood: '#C98A72',
-        oxbloodSoft: '#D7A794',
-        brass: '#8CA184',
+        parchment: '#EAF0F4',
+        parchmentDark: '#F7FAFC',
+        ink: '#2F4A5E',
+        inkSoft: '#6E8394',
+        library: '#4C6B87',
+        libraryDeep: '#37536A',
+        oxblood: '#5C8A7A',
+        oxbloodSoft: '#8AAFA0',
+        brass: '#B79C6B',
       },
       fontFamily: {
         display: ['"Fraunces"', 'serif'],
@@ -19,8 +19,8 @@ export default {
         mono: ['"Quicksand"', 'sans-serif'],
       },
       boxShadow: {
-        card: '0 6px 16px rgba(74,58,44,0.12)',
-        cardHover: '0 10px 26px rgba(74,58,44,0.18)',
+        card: '0 6px 16px rgba(47,74,94,0.12)',
+        cardHover: '0 10px 26px rgba(47,74,94,0.18)',
       },
     },
   },

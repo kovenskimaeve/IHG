@@ -117,7 +117,7 @@ export default function Discussions() {
       <div className="space-y-5">
         {topLevel.length === 0 && <p className="font-body text-inkSoft">No posts yet in this channel — start one.</p>}
         {topLevel.map((post) => (
-          <div key={post.id} className="bg-parchment border border-ink/20 shadow-card p-5">
+          <div key={post.id} className="tilt-card bg-parchment border border-ink/20 shadow-card p-5">
             <div className="flex justify-between items-start mb-2">
               <p className="stamp text-[10px] text-inkSoft">{post.author_name}</p>
               <button onClick={() => report(post)} className="font-body text-xs text-inkSoft underline">Report</button>

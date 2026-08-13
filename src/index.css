@@ -3,10 +3,10 @@
 @tailwind utilities;
 
 body {
-  background-color: #F6EFE2;
-  background-image: radial-gradient(rgba(74,58,44,0.05) 1px, transparent 1px);
+  background-color: #EAF0F4;
+  background-image: radial-gradient(rgba(47,74,94,0.05) 1px, transparent 1px);
   background-size: 4px 4px;
-  color: #4A3A2C;
+  color: #2F4A5E;
 }
 
 .shadow-card, .shadow-cardHover {
@@ -25,11 +25,11 @@ input, select, textarea, button {
   font-family: 'Fraunces', serif;
   font-style: italic;
   letter-spacing: 0.02em;
-  color: #8A5A34;
+  color: #4C6B87;
 }
 
 .torn-edge {
-  border-bottom: 1px solid rgba(140, 161, 132, 0.45);
+  border-bottom: 1px solid rgba(108, 147, 163, 0.4);
 }
 
 .tilt-card {
@@ -39,11 +39,11 @@ input, select, textarea, button {
   transform: perspective(700px) rotateX(2deg) rotateY(-2deg) translateY(-5px);
 }
 
-@keyframes leaf-float {
+@keyframes float-accent {
   0%, 100% { transform: translateY(0) rotate(-3deg); }
   50% { transform: translateY(-10px) rotate(3deg); }
 }
-.leaf-float {
+.float-accent {
   display: inline-block;
-  animation: leaf-float 6s ease-in-out infinite;
+  animation: float-accent 6s ease-in-out infinite;
 }

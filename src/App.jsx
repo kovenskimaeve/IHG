@@ -6,6 +6,7 @@ import Tutorial from './components/Tutorial'
 import FeedbackButton from './components/FeedbackButton'
 import Home from './pages/Home'
 import Browse from './pages/Browse'
+import LessonSlides from './pages/LessonSlides'
 import Upload from './pages/Upload'
 import Discussions from './pages/Discussions'
 import StudyLinks from './pages/StudyLinks'
@@ -22,7 +23,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/past-papers" element={<Browse category="past_paper" />} />
-          <Route path="/lesson-slides" element={<Browse category="lesson_slide" />} />
+          <Route path="/lesson-slides" element={<LessonSlides />} />
           <Route path="/study-guides" element={<Browse category="study_guide" />} />
           <Route path="/discussions" element={<Discussions />} />
           <Route path="/study-links" element={<StudyLinks />} />

@@ -51,7 +51,7 @@ export default function Requests() {
 
       <div className="space-y-3">
         {requests.map((r) => (
-          <div key={r.id} className="flex items-center justify-between bg-parchment border border-ink/20 shadow-card p-4">
+          <div key={r.id} className="tilt-card flex items-center justify-between bg-parchment border border-ink/20 shadow-card p-4">
             <div>
               <p className="stamp text-[10px] text-oxblood mb-1">{r.subject}</p>
               <p className="font-body text-sm">{r.description}</p>

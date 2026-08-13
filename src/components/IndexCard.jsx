@@ -1,3 +1,7 @@
+// Cottagecore pass: dropped the punch-hole/stamp-box look for something
+// softer — rounded card, gentle hover tilt, a quiet italic label instead
+// of a boxed rubber-stamp badge.
+
 export default function IndexCard({ title, grade, subject, meta, onPreview, onDownload }) {
   return (
     <div className="tilt-card relative bg-parchmentDark border border-ink/10 shadow-card p-5">
