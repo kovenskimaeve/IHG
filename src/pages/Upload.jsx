@@ -26,6 +26,7 @@ export default function Upload() {
   const [bandSubject, setBandSubject] = useState(SUBJECTS_BY_BAND[GRADE_BANDS[0].id][0])
   const [course, setCourse] = useState(GRADE9_COURSES[0])
   const [uploaderName, setUploaderName] = useState('')
+  const [title, setTitle] = useState('')
   const [confirmed, setConfirmed] = useState(false)
   const [selectedFiles, setSelectedFiles] = useState([])
   const [status, setStatus] = useState('')
@@ -74,31 +75,53 @@ export default function Upload() {
     setStatus('Uploading…')
     let uploaded = 0
     let skipped = 0
+    const errors = []
 
-    for (const file of selectedFiles) {
+    for (let i = 0; i < selectedFiles.length; i++) {
+      const file = selectedFiles[i]
       const hash = await sha256Hex(file)
-      const { data: existing } = await supabase.from('files').select('id').eq('file_hash', hash).maybeSingle()
-      if (existing) {
+
+      const { data: existing, error: lookupError } = await supabase
+        .from('files').select('id').eq('file_hash', hash).maybeSingle()
+      if (lookupError) {
         skipped++
+        errors.push(`Lookup failed: ${lookupError.message}`)
         continue
       }
+      if (existing) {
+        skipped++
+        errors.push(`"${file.name}" already exists.`)
+        continue
+      }
+
       const path = `${category}/${crypto.randomUUID()}-${file.name}`
       const { error: uploadError } = await supabase.storage.from('papers').upload(path, file)
       if (uploadError) {
         skipped++
+        errors.push(`Storage upload failed: ${uploadError.message}`)
         continue
       }
+
       const { data: urlData } = supabase.storage.from('papers').getPublicUrl(path)
-      await supabase.from('files').insert({
+      const fileTitle = title.trim()
+        ? (selectedFiles.length > 1 ? `${title.trim()} (${i + 1})` : title.trim())
+        : file.name.replace(/\.pdf$/i, '')
+
+      const { error: insertError } = await supabase.from('files').insert({
         type: category,
         grade: effectiveGrade,
         subject: effectiveSubject,
-        title: file.name.replace(/\.pdf$/i, ''),
+        title: fileTitle,
         file_url: urlData.publicUrl,
         file_hash: hash,
         uploader_name: uploaderName.trim(),
         made_by_student: true,
       })
+      if (insertError) {
+        skipped++
+        errors.push(`Database save failed: ${insertError.message}`)
+        continue
+      }
       uploaded++
     }
 
@@ -110,7 +133,8 @@ export default function Upload() {
       localStorage.setItem('ihg_upload_count', String(next))
       setTotalShared((t) => (typeof t === 'number' ? t + uploaded : t))
     }
-    setStatus(`Done — ${uploaded} uploaded${skipped ? `, ${skipped} skipped (already exists or failed)` : ''}.`)
+    const summary = `Done — ${uploaded} uploaded${skipped ? `, ${skipped} skipped` : ''}.`
+    setStatus(errors.length ? `${summary} ${errors[0]}` : summary)
   }
 
   return (
@@ -194,6 +218,16 @@ export default function Upload() {
             </div>
           </div>
         )}
+
+        <div>
+          <label className="font-body text-xs text-inkSoft block mb-1">Title</label>
+          <input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="e.g. G10 Maths Unit 3 Practice Paper (leave blank to use the file name)"
+            className="w-full font-body text-sm border border-ink/20 bg-parchment px-3 py-2"
+          />
+        </div>
 
         <div>
           <label className="font-body text-xs text-inkSoft block mb-1">Uploading as</label>
