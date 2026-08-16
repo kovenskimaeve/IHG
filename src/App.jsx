@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Routes, Route } from 'react-router-dom'
 import Navbar from './components/Navbar'
+import BackgroundBlobs from './components/BackgroundBlobs'
 import AgreementGate from './components/AgreementGate'
 import Tutorial from './components/Tutorial'
 import FeedbackButton from './components/FeedbackButton'
@@ -19,6 +20,7 @@ export default function App() {
   return (
     <AgreementGate onAgreed={() => setShowTutorial(true)}>
       <div className="min-h-screen font-body">
+        <BackgroundBlobs />
         <Navbar />
         <Routes>
           <Route path="/" element={<Home />} />

@@ -55,3 +55,17 @@ input, select, textarea, button {
   display: inline-block;
   animation: float-accent 6s ease-in-out infinite;
 }
+
+.blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(70px);
+  opacity: 0.16;
+  animation: blob-drift ease-in-out infinite;
+}
+@keyframes blob-drift {
+  0%   { transform: translate(0, 0) scale(1); }
+  33%  { transform: translate(40px, 30px) scale(1.08); }
+  66%  { transform: translate(-30px, 20px) scale(0.94); }
+  100% { transform: translate(0, 0) scale(1); }
+}

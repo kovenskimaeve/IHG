@@ -54,6 +54,12 @@ export default function Upload() {
       setSelectedFiles([])
       return
     }
+    const tooSmall = files.some((f) => f.size < 3000)
+    if (tooSmall) {
+      setStatus('That file looks empty or almost empty — please check it actually has content before uploading.')
+      setSelectedFiles([])
+      return
+    }
     setStatus('')
     setSelectedFiles(files)
   }
