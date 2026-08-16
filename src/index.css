@@ -59,13 +59,13 @@ input, select, textarea, button {
 .blob {
   position: absolute;
   border-radius: 50%;
-  filter: blur(70px);
-  opacity: 0.16;
+  filter: blur(60px);
+  opacity: 0.4;
   animation: blob-drift ease-in-out infinite;
 }
 @keyframes blob-drift {
   0%   { transform: translate(0, 0) scale(1); }
-  33%  { transform: translate(40px, 30px) scale(1.08); }
-  66%  { transform: translate(-30px, 20px) scale(0.94); }
+  33%  { transform: translate(60px, 45px) scale(1.15); }
+  66%  { transform: translate(-45px, 30px) scale(0.9); }
   100% { transform: translate(0, 0) scale(1); }
 }
