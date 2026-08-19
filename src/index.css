@@ -56,15 +56,21 @@ input, select, textarea, button {
   animation: float-accent 6s ease-in-out infinite;
 }
 
-.blob {
-  position: absolute;
-  border-radius: 50%;
-  opacity: 0.55;
-  animation: blob-drift ease-in-out infinite;
+@keyframes whale-swim {
+  0%   { transform: translate(0, 0); }
+  50%  { transform: translate(140vw, -40px); }
+  100% { transform: translate(150vw, 0); }
 }
-@keyframes blob-drift {
-  0%   { transform: translate(0, 0) scale(1); }
-  33%  { transform: translate(60px, 45px) scale(1.15); }
-  66%  { transform: translate(-45px, 30px) scale(0.9); }
-  100% { transform: translate(0, 0) scale(1); }
+@keyframes whale-swim-reverse {
+  0%   { transform: translate(0, 0); }
+  50%  { transform: translate(-140vw, 40px); }
+  100% { transform: translate(-150vw, 0); }
+}
+
+.page-enter {
+  animation: page-enter 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes page-enter {
+  0% { opacity: 0; transform: perspective(900px) rotateX(-4deg) translateY(10px); }
+  100% { opacity: 1; transform: perspective(900px) rotateX(0deg) translateY(0); }
 }
