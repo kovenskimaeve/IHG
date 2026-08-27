@@ -1,8 +1,3 @@
-// Vercel serverless function. This runs on the server only — the admin
-// password and the Supabase service-role key never reach the browser,
-// which is what actually makes this page secure (unlike a plain client
-// -side password check anyone could bypass in devtools).
-
 import { createClient } from '@supabase/supabase-js'
 
 const supabaseAdmin = createClient(

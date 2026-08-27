@@ -1,7 +1,3 @@
-// Best-effort anonymous device identity. Since the site has no login,
-// this is a deterrent, not a lock: clearing storage or switching browsers
-// resets it. It's paired with the server-side admin tools for real cases.
-
 export function getDeviceId() {
   let id = localStorage.getItem('ihg_device_id')
   if (!id) {
@@ -11,9 +7,6 @@ export function getDeviceId() {
   return id
 }
 
-// Small starter wordlist — expand as needed. Kept short here on purpose;
-// swap in a bigger list or a moderation API call later without changing
-// how it's called anywhere else in the app.
 const BLOCKED_WORDS = ['badword1', 'badword2']
 
 export function containsProfanity(text) {

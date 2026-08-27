@@ -59,7 +59,7 @@ export default function Discussions() {
       device_id: deviceId,
       vote: delta,
     })
-    if (voteErr) return // already voted on this post
+    if (voteErr) return
     const field = delta > 0 ? 'upvotes' : 'downvotes'
     await supabase.from('discussion_posts').update({ [field]: (post[field] || 0) + 1 }).eq('id', post.id)
     load()

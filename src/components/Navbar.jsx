@@ -24,9 +24,7 @@ export default function Navbar() {
               to={l.to}
               className={({ isActive }) =>
                 `pb-0.5 border-b-2 transition-colors ${
-                  isActive
-                    ? 'border-oxblood text-oxblood'
-                    : 'border-transparent hover:border-ink/30'
+                  isActive ? 'border-oxblood text-oxblood' : 'border-transparent hover:border-ink/30'
                 }`
               }
             >

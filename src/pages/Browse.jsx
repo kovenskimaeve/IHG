@@ -41,10 +41,7 @@ export default function Browse({ category }) {
   }, [files, query])
 
   async function handleDownload(file) {
-    await supabase
-      .from('files')
-      .update({ download_count: (file.download_count || 0) + 1 })
-      .eq('id', file.id)
+    await supabase.from('files').update({ download_count: (file.download_count || 0) + 1 }).eq('id', file.id)
     window.open(file.file_url, '_blank')
   }
 

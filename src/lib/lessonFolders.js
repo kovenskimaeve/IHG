@@ -1,8 +1,3 @@
-// Grade-band folder structure, specific to Lesson Slides only.
-// Past papers and study guides keep the simpler flat Grade 6-11 model
-// in device.js — this file is only used by LessonSlides.jsx and the
-// lesson-slide branch of Upload.jsx.
-
 export const GRADE_BANDS = [
   { id: 'Grade 6', subtitle: 'Foundation Years' },
   { id: 'Grades 7-8', subtitle: 'Middle Years' },
@@ -27,10 +22,6 @@ export const SUBJECTS_BY_BAND = {
   ],
 }
 
-// Two entries in your original list looked run-together or cut off when
-// pasted ("MYP Design.../Shuyuan Applied..." and "That's Showbiz 這就").
-// I split the first and left the second as you sent it — please check
-// that one against your source before this goes live.
 export const GRADE9_COURSES = [
   'Digital Design 數碼設計',
   'Shuyuan Geoscience 書院地球科學',
@@ -39,7 +30,7 @@ export const GRADE9_COURSES = [
   "Visual Arts - Breaking the Rules 打破常規",
   "Visual Arts - Nature's Blueprint: Art and Anatomy and Architecture 自然的藍圖：解剖學與建築的藝術",
   "Theatre - That's Lit!(erature) 那就是文學！",
-  "Theatre - That's Showbiz 這就", // check this one — looked cut off in your source
+  "Theatre - That's Showbiz 這就",
   'MYP Design MYP 設計',
   'Shuyuan Applied Architecture and Space 書院應用建築與空間',
   'Shuyuan Chinese Classical Literature 書院中國古典文學',

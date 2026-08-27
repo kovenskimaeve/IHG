@@ -1,9 +1,3 @@
-// Signature background element: a couple of whales gliding slowly across
-// the screen at different depths, replacing the old static blobs. Pure
-// decoration — fixed, behind everything, no pointer events.
-// Split into an outer div (handles the swim path) and inner svg (handles
-// the flip/fill) so the two transforms don't fight each other.
-
 function Whale({ width, top, duration, delay, reverse, flip, color, opacity }) {
   return (
     <div
