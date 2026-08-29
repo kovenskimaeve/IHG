@@ -4,40 +4,47 @@ import { OrbitControls, Sparkles, Environment } from '@react-three/drei'
 import { EffectComposer, Bloom, ChromaticAberration, Noise, Vignette } from '@react-three/postprocessing'
 import * as THREE from 'three'
 import WhaleModel from './WhaleModel'
-import OceanFloor from './OceanFloor'
+import OceanSurface from './OceanSurface'
+import LightShafts from './LightShafts'
 
 function Scene() {
   return (
     <>
-      <color attach="background" args={['#0a0e1a']} />
-      <fog attach="fog" args={['#0a0e1a', 7, 24]} />
+      <color attach="background" args={['#060a14']} />
+      <fog attach="fog" args={['#060a14', 6, 22]} />
 
-      <ambientLight intensity={0.3} color="#3a5a7a" />
-      <directionalLight position={[3, 8, 4]} intensity={1.8} color="#cfe6ff" castShadow />
-      <pointLight position={[-4, -2, 3]} intensity={1.2} color="#00d4ff" />
-      <pointLight position={[0, 0, 6]} intensity={0.5} color="#7b61ff" />
+      <ambientLight intensity={0.22} color="#3a5a7a" />
+      {/* "sun" above the surface, shining down through it */}
+      <directionalLight position={[1, 12, -2]} intensity={2.2} color="#dff0ff" />
+      <pointLight position={[-4, -1, 3]} intensity={1.1} color="#00d4ff" />
+      <pointLight position={[0, -2, 6]} intensity={0.5} color="#7b61ff" />
       <Environment preset="night" />
 
-      <Sparkles count={220} scale={[16, 12, 10]} size={1.4} speed={0.15} opacity={0.45} color="#bcd6ea" />
+      <Sparkles count={220} scale={[16, 12, 10]} size={1.3} speed={0.15} opacity={0.4} color="#bcd6ea" />
 
-      <OceanFloor position={[0, -5.5, 0]} scale={3.5} />
-      <WhaleModel position={[0, 0.4, 0]} scale={1.4} rotation={[0, 0.6, 0]} />
+      {/* surface sits well above the whale, seen from underneath */}
+      <OceanSurface position={[0, 8, 0]} scale={6} />
+      <LightShafts />
+
+      <WhaleModel position={[0, -0.5, 0]} scale={1.4} rotation={[0, 0.6, 0]} />
 
       <OrbitControls
         enableDamping
         dampingFactor={0.06}
         minDistance={5}
         maxDistance={13}
+        maxPolarAngle={Math.PI * 0.62}
         enablePan={false}
         autoRotate
         autoRotateSpeed={0.35}
+        target={[0, 0.5, 0]}
       />
 
       <EffectComposer>
-        <Bloom intensity={0.5} luminanceThreshold={0.25} luminanceSmoothing={0.9} mipmapBlur />
+        <Bloom intensity={0.65} luminanceThreshold={0.22} luminanceSmoothing={0.9} mipmapBlur />
         <ChromaticAberration offset={new THREE.Vector2(0.0009, 0.0009)} radialModulation modulationOffset={0.4} />
         <Noise opacity={0.03} />
-        <Vignette eskil={false} offset={0.25} darkness={0.7} />
+        <Vignette eskil={false} offset={0.25} darkness={0.75} />
       </EffectComposer>
     </>
   )
@@ -47,11 +54,10 @@ export default function WhaleHero() {
   const [ready, setReady] = useState(false)
 
   return (
-    <div className="relative w-full h-screen overflow-hidden" style={{ background: 'linear-gradient(180deg, #0a0e1a, #030508)' }}>
+    <div className="relative w-full h-screen overflow-hidden" style={{ background: 'linear-gradient(180deg, #060a14, #020408)' }}>
       <Canvas
-        camera={{ position: [0, 0.5, 9], fov: 45 }}
+        camera={{ position: [0, -0.5, 9], fov: 45 }}
         dpr={[1, 1.75]}
-        shadows
         onCreated={() => setReady(true)}
       >
         <Suspense fallback={null}>
