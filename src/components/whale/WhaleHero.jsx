@@ -13,12 +13,12 @@ function Scene() {
       <color attach="background" args={['#060a14']} />
       <fog attach="fog" args={['#060a14', 6, 22]} />
 
-      <ambientLight intensity={0.22} color="#3a5a7a" />
-      {/* "sun" above the surface, shining down through it */}
-      <directionalLight position={[1, 12, -2]} intensity={2.2} color="#dff0ff" />
-      <pointLight position={[-4, -1, 3]} intensity={1.1} color="#00d4ff" />
-      <pointLight position={[0, -2, 6]} intensity={0.5} color="#7b61ff" />
-      <Environment preset="night" />
+      <ambientLight intensity={0.16} color="#3a5a7a" />
+      {/* "sun" above the surface, shining down through it — main shaping light */}
+      <directionalLight position={[1, 12, -2]} intensity={3.2} color="#dff0ff" />
+      <pointLight position={[-4, -1, 3]} intensity={0.5} color="#00d4ff" />
+      <pointLight position={[0, -2, 6]} intensity={0.25} color="#7b61ff" />
+      <Environment preset="sunset" environmentIntensity={0.4} />
 
       <Sparkles count={220} scale={[16, 12, 10]} size={1.3} speed={0.15} opacity={0.4} color="#bcd6ea" />
 
@@ -26,7 +26,7 @@ function Scene() {
       <OceanSurface position={[0, 8, 0]} scale={6} />
       <LightShafts />
 
-      <WhaleModel position={[0, -0.5, 0]} scale={1.4} rotation={[0, 0.6, 0]} />
+      <WhaleModel position={[0, -0.5, 0]} scale={1.8} rotation={[0, 0.6, 0]} />
 
       <OrbitControls
         enableDamping
@@ -41,7 +41,7 @@ function Scene() {
       />
 
       <EffectComposer>
-        <Bloom intensity={0.65} luminanceThreshold={0.22} luminanceSmoothing={0.9} mipmapBlur />
+        <Bloom intensity={0.35} luminanceThreshold={0.45} luminanceSmoothing={0.9} mipmapBlur />
         <ChromaticAberration offset={new THREE.Vector2(0.0009, 0.0009)} radialModulation modulationOffset={0.4} />
         <Noise opacity={0.03} />
         <Vignette eskil={false} offset={0.25} darkness={0.75} />
