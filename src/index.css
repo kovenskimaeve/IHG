@@ -56,6 +56,20 @@ input, select, textarea, button {
   animation: float-accent 6s ease-in-out infinite;
 }
 
+.shine-text {
+  background: linear-gradient(100deg, #586780 30%, #B79C6B 45%, #e8ecf1 50%, #B79C6B 55%, #586780 70%);
+  background-size: 250% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 0 1px 0 rgba(0,0,0,0.05);
+  animation: shine-sweep 5s linear infinite;
+}
+@keyframes shine-sweep {
+  0% { background-position: 0% center; }
+  100% { background-position: -250% center; }
+}
+
 @keyframes whale-swim {
   0%   { transform: translate(0, 0); }
   50%  { transform: translate(140vw, -40px); }

@@ -41,11 +41,12 @@ export default function Upload() {
     })
   }, [])
 
+  const [useCourse, setUseCourse] = useState(false)
   const isLessonSlide = category === 'lesson_slide'
   const effectiveGrade = isLessonSlide ? band : grade
   const effectiveSubject = isLessonSlide
     ? (bandSubject === 'Courses' ? course : bandSubject)
-    : subject
+    : (grade === 'Grade 9' && useCourse ? course : subject)
 
   function onPick(e) {
     const files = Array.from(e.target.files || [])
@@ -66,8 +67,8 @@ export default function Upload() {
   }
 
   async function handleUpload() {
-    if (!uploaderName.trim()) return setStatus('Add a display name so people know who made this.')
-    if (containsProfanity(uploaderName)) return setStatus('That display name isn\u2019t appropriate — pick another.')
+    const finalName = uploaderName.trim() || 'Anonymous'
+    if (containsProfanity(finalName)) return setStatus('That display name isn\u2019t appropriate — pick another.')
     if (!confirmed) return setStatus('Please confirm this follows the upload rules before submitting.')
     if (selectedFiles.length === 0) return setStatus('Choose at least one PDF.')
 
@@ -114,7 +115,7 @@ export default function Upload() {
         title: fileTitle,
         file_url: urlData.publicUrl,
         file_hash: hash,
-        uploader_name: uploaderName.trim(),
+        uploader_name: finalName,
         made_by_student: true,
       })
       if (insertError) {
@@ -216,6 +217,19 @@ export default function Upload() {
                 {SUBJECTS.map((s) => <option key={s} value={s}>{s}</option>)}
               </select>
             </div>
+            {grade === 'Grade 9' && (
+              <div className="col-span-2">
+                <label className="flex items-center gap-2 font-body text-xs text-inkSoft mb-1 cursor-pointer">
+                  <input type="checkbox" checked={useCourse} onChange={(e) => setUseCourse(e.target.checked)} className="accent-library" />
+                  Tag with a specific Grade 9 course instead
+                </label>
+                {useCourse && (
+                  <select value={course} onChange={(e) => setCourse(e.target.value)} className="w-full font-body text-sm border border-ink/20 bg-parchment px-3 py-2">
+                    {GRADE9_COURSES.map((c) => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -234,7 +248,7 @@ export default function Upload() {
           <input
             value={uploaderName}
             onChange={(e) => setUploaderName(e.target.value)}
-            placeholder="e.g. a Grade 10 student"
+            placeholder="e.g. a Grade 10 student, or leave blank for Anonymous"
             className="w-full font-body text-sm border border-ink/20 bg-parchment px-3 py-2"
           />
         </div>

@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../supabaseClient'
 import { SUBJECTS } from '../lib/device'
+import { GRADE9_COURSES } from '../lib/lessonFolders'
+
+const REQUEST_TOPICS = [...SUBJECTS, ...GRADE9_COURSES, 'External resource (link, site, tool)']
 
 export default function Requests() {
   const [requests, setRequests] = useState([])
-  const [subject, setSubject] = useState(SUBJECTS[0])
+  const [subject, setSubject] = useState(REQUEST_TOPICS[0])
   const [description, setDescription] = useState('')
 
   async function load() {
@@ -36,7 +39,7 @@ export default function Requests() {
 
       <div className="bg-parchmentDark border border-ink/20 shadow-card p-5 mb-8">
         <select value={subject} onChange={(e) => setSubject(e.target.value)} className="w-full font-body text-sm border border-ink/25 bg-parchment px-3 py-2 mb-3">
-          {SUBJECTS.map((s) => <option key={s} value={s}>{s}</option>)}
+          {REQUEST_TOPICS.map((s) => <option key={s} value={s}>{s}</option>)}
         </select>
         <textarea
           value={description}

@@ -3,7 +3,7 @@ import { Canvas } from '@react-three/fiber'
 import { OrbitControls, Sparkles, Environment } from '@react-three/drei'
 import { EffectComposer, Bloom, Noise, Vignette } from '@react-three/postprocessing'
 import WhaleModel from './WhaleModel'
-import OceanSurface from './OceanSurface'
+import ScrollHint from './ScrollHint'
 
 function Scene() {
   return (
@@ -19,8 +19,7 @@ function Scene() {
 
       <Sparkles count={220} scale={[16, 12, 10]} size={1.3} speed={0.15} opacity={0.4} color="#bcd6ea" />
 
-      {/* lower + closer so it's actually visible in the default framing */}
-      <OceanSurface position={[0, 4.5, 0]} scale={6} />
+      {/* whale is the whole show now */}
 
       <WhaleModel position={[0, -0.5, 0]} scale={1.8} rotation={[0, 0.6, 0]} />
 
@@ -70,19 +69,13 @@ export default function WhaleHero() {
         </h1>
       </div>
 
-      <div
-        className="absolute bottom-6 right-6 md:right-10 flex flex-col items-center gap-1"
-        style={{ color: 'rgba(232,236,241,0.5)', fontSize: '0.7rem', letterSpacing: '0.15em' }}
-      >
-        <span>SCROLL TO EXPLORE</span>
-        <span className="float-accent" style={{ fontSize: '1rem' }}>↓</span>
-      </div>
+      <ScrollHint />
 
       <div
         className="absolute left-6 bottom-6 md:left-10"
-        style={{ color: 'rgba(232,236,241,0.35)', fontSize: '0.65rem', letterSpacing: '0.05em' }}
+        style={{ color: 'rgba(232,236,241,0.22)', fontSize: '0.6rem', letterSpacing: '0.03em' }}
       >
-        Whale &amp; ocean models via Sketchfab, CC Attribution
+        Whale model via Sketchfab, CC Attribution
       </div>
 
       {!ready && (

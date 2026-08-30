@@ -1,17 +1,28 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../supabaseClient'
 import { SUBJECTS, containsProfanity, getDeviceId } from '../lib/device'
+import { GRADE9_COURSES } from '../lib/lessonFolders'
 
-const CHANNELS = ['General', ...SUBJECTS.map((s) => `Q&A: ${s}`)]
+const CATEGORIES = ['Q&A', 'Tips & Discussion']
+const SUBJECT_CHOICES = ['General', ...SUBJECTS, 'Others']
+
+function formatDate(iso) {
+  return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+}
 
 export default function Discussions() {
-  const [channel, setChannel] = useState('General')
+  const [category, setCategory] = useState('Q&A')
+  const [subjectChoice, setSubjectChoice] = useState('General')
+  const [course, setCourse] = useState(GRADE9_COURSES[0])
   const [posts, setPosts] = useState([])
   const [authorName, setAuthorName] = useState('')
   const [body, setBody] = useState('')
   const [replyOpenFor, setReplyOpenFor] = useState(null)
   const [replyText, setReplyText] = useState('')
   const [error, setError] = useState('')
+
+  const subject = subjectChoice === 'Others' ? course : subjectChoice
+  const channel = `${category}::${subject}`
 
   async function load() {
     const { data } = await supabase
@@ -33,7 +44,7 @@ export default function Discussions() {
   }, [channel])
 
   async function submitPost(parentId, text) {
-    if (!authorName.trim()) return setError('Add a display name first.')
+    if (!authorName.trim()) return setError('Add a display name first (or type Anonymous).')
     if (containsProfanity(authorName) || containsProfanity(text)) return setError('Keep it appropriate, please.')
     if (!text.trim()) return
     setError('')
@@ -81,13 +92,13 @@ export default function Discussions() {
     <div className="max-w-3xl mx-auto px-4 py-12">
       <h1 className="font-display text-4xl mb-6">Discussions</h1>
 
-      <div className="flex gap-2 overflow-x-auto pb-2 mb-6">
-        {CHANNELS.map((c) => (
+      <div className="flex gap-2 mb-4">
+        {CATEGORIES.map((c) => (
           <button
             key={c}
-            onClick={() => setChannel(c)}
-            className={`stamp text-xs whitespace-nowrap px-3 py-2 border ${
-              channel === c ? 'bg-library text-parchment border-library' : 'border-ink/25 text-inkSoft'
+            onClick={() => setCategory(c)}
+            className={`font-body text-sm px-4 py-2 border ${
+              category === c ? 'bg-library text-parchment border-library' : 'bg-parchmentDark text-ink border-ink/25'
             }`}
           >
             {c}
@@ -95,17 +106,36 @@ export default function Discussions() {
         ))}
       </div>
 
+      <div className="flex flex-wrap gap-2 mb-6">
+        <select
+          value={subjectChoice}
+          onChange={(e) => setSubjectChoice(e.target.value)}
+          className="font-body text-sm border border-ink/25 bg-parchment text-ink px-3 py-2"
+        >
+          {SUBJECT_CHOICES.map((s) => <option key={s} value={s}>{s}</option>)}
+        </select>
+        {subjectChoice === 'Others' && (
+          <select
+            value={course}
+            onChange={(e) => setCourse(e.target.value)}
+            className="font-body text-sm border border-ink/25 bg-parchment text-ink px-3 py-2"
+          >
+            {GRADE9_COURSES.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+        )}
+      </div>
+
       <div className="bg-parchmentDark border border-ink/20 shadow-card p-5 mb-8">
         <input
           value={authorName}
           onChange={(e) => setAuthorName(e.target.value)}
-          placeholder="Your display name"
+          placeholder="Your display name, or 'Anonymous'"
           className="w-full font-body text-sm border border-ink/25 bg-parchment px-3 py-2 mb-3"
         />
         <textarea
           value={body}
           onChange={(e) => setBody(e.target.value)}
-          placeholder={channel === 'General' ? 'Say anything (keep it appropriate)...' : 'Ask a question or answer one — give working, not just a final answer...'}
+          placeholder={category === 'Q&A' ? 'Ask a question or answer one — give working, not just a final answer...' : 'Share a tip or start a conversation...'}
           className="w-full font-body text-sm border border-ink/25 bg-parchment px-3 py-2 h-24 resize-none mb-3"
         />
         {error && <p className="font-body text-sm text-oxblood mb-2">{error}</p>}
@@ -115,11 +145,11 @@ export default function Discussions() {
       </div>
 
       <div className="space-y-5">
-        {topLevel.length === 0 && <p className="font-body text-inkSoft">No posts yet in this channel — start one.</p>}
+        {topLevel.length === 0 && <p className="font-body text-inkSoft">No posts yet here — start one.</p>}
         {topLevel.map((post) => (
           <div key={post.id} className="tilt-card bg-parchment border border-ink/20 shadow-card p-5">
             <div className="flex justify-between items-start mb-2">
-              <p className="stamp text-[10px] text-inkSoft">{post.author_name}</p>
+              <p className="stamp text-[10px] text-inkSoft">{post.author_name} · {formatDate(post.created_at)}</p>
               <button onClick={() => report(post)} className="font-body text-xs text-inkSoft underline">Report</button>
             </div>
             <p className="font-body text-sm leading-relaxed mb-3 whitespace-pre-wrap">{post.body}</p>
@@ -133,7 +163,7 @@ export default function Discussions() {
 
             {repliesFor(post.id).map((r) => (
               <div key={r.id} className="ml-4 pl-4 border-l-2 border-ink/15 mb-3">
-                <p className="stamp text-[10px] text-inkSoft mb-1">{r.author_name}</p>
+                <p className="stamp text-[10px] text-inkSoft mb-1">{r.author_name} · {formatDate(r.created_at)}</p>
                 <p className="font-body text-sm leading-relaxed mb-2 whitespace-pre-wrap">{r.body}</p>
                 <div className="flex items-center gap-4">
                   <button onClick={() => vote(r, 1)} className="font-body text-xs">▲ {r.upvotes || 0}</button>

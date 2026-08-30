@@ -7,7 +7,7 @@ export default {
         parchmentDark: '#F7FAFC',
         ink: '#2F4A5E',
         inkSoft: '#6E8394',
-        library: '#4C6B87',
+        library: '#586780',
         libraryDeep: '#37536A',
         oxblood: '#5C8A7A',
         oxbloodSoft: '#8AAFA0',

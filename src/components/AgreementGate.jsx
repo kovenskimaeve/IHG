@@ -18,7 +18,10 @@ export default function AgreementGate({ children, onAgreed }) {
     <div className="min-h-screen flex items-center justify-center px-4 py-12">
       <div className="max-w-lg w-full bg-parchmentDark border border-ink/20 shadow-card p-8">
         <p className="stamp text-xs text-oxblood mb-2">Before you enter</p>
-        <h1 className="font-display text-3xl mb-4">Terms &amp; agreement</h1>
+        <h1 className="font-display text-3xl mb-2">Terms &amp; agreement</h1>
+        <p className="shine-text font-display text-lg mb-4">
+          Grade 10 &amp; 11 coverage is filling in fast
+        </p>
         <div className="font-body text-sm leading-relaxed text-inkSoft space-y-3 mb-6">
           <p>
             ISF Holy Grail is a student-run study archive, not a homework
