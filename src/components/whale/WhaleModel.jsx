@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { useGLTF, useAnimations } from '@react-three/drei'
+import { useFrame } from '@react-three/fiber'
 
 // Real scanned/rigged model (credit: Sketchfab, CC Attribution — see footer).
 // Plays its own baked swimming animation. No emissive overlay — that was
@@ -13,7 +14,10 @@ export default function WhaleModel(props) {
 
   useEffect(() => {
     const first = Object.values(actions)[0]
-    first?.reset().play()
+    if (first) {
+      first.reset().play()
+      first.timeScale = 1.6
+    }
     scene.traverse((child) => {
       if (child.isMesh) {
         child.castShadow = true
@@ -21,6 +25,10 @@ export default function WhaleModel(props) {
       }
     })
   }, [actions, scene])
+
+  useFrame((state) => {
+    if (group.current) group.current.position.y = props.position[1] + Math.sin(state.clock.elapsedTime * 0.5) * 0.35
+  })
 
   return <primitive ref={group} object={scene} {...props} />
 }
