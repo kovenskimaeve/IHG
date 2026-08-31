@@ -1,7 +1,8 @@
 import { Suspense, useState } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { OrbitControls, Sparkles, Environment } from '@react-three/drei'
-import { EffectComposer, Bloom, Noise, Vignette } from '@react-three/postprocessing'
+import { EffectComposer, Bloom, ChromaticAberration, Noise, Vignette } from '@react-three/postprocessing'
+import * as THREE from 'three'
 import WhaleModel from './WhaleModel'
 import ScrollHint from './ScrollHint'
 
@@ -26,8 +27,7 @@ function Scene() {
       <OrbitControls
         enableDamping
         dampingFactor={0.06}
-        minDistance={5}
-        maxDistance={13}
+        enableZoom={false}
         maxPolarAngle={Math.PI * 0.85}
         minPolarAngle={Math.PI * 0.15}
         enablePan={false}
@@ -38,6 +38,7 @@ function Scene() {
 
       <EffectComposer>
         <Bloom intensity={0.4} luminanceThreshold={0.4} luminanceSmoothing={0.9} mipmapBlur />
+        <ChromaticAberration offset={new THREE.Vector2(0.0007, 0.0007)} radialModulation modulationOffset={0.5} />
         <Noise opacity={0.03} />
         <Vignette eskil={false} offset={0.22} darkness={0.75} />
       </EffectComposer>

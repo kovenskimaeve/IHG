@@ -68,7 +68,7 @@ export default function FeedbackButton() {
       <button
         onPointerDown={onPointerDown}
         onClick={() => setOpen((o) => !o)}
-        className="stamp text-xs bg-ink/80 backdrop-blur text-parchment px-4 py-3 shadow-card cursor-grab active:cursor-grabbing"
+        className="stamp text-xs bg-ink text-parchment px-4 py-3 shadow-card cursor-grab active:cursor-grabbing"
       >
         Feedback
       </button>

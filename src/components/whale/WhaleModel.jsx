@@ -26,8 +26,10 @@ export default function WhaleModel(props) {
     })
   }, [actions, scene])
 
-  useFrame((state) => {
-    if (group.current) group.current.position.y = props.position[1] + Math.sin(state.clock.elapsedTime * 0.5) * 0.35
+  useFrame((state, delta) => {
+    if (!group.current) return
+    group.current.position.y = props.position[1] + Math.sin(state.clock.elapsedTime * 0.5) * 0.35
+    group.current.rotation.y += delta * 0.25
   })
 
   return <primitive ref={group} object={scene} {...props} />
