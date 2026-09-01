@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Routes, Route, useLocation } from 'react-router-dom'
 import Navbar from './components/Navbar'
+import SeaDrift from './components/SeaDrift'
 import AgreementGate from './components/AgreementGate'
 import Tutorial from './components/Tutorial'
 import FeedbackButton from './components/FeedbackButton'
@@ -21,6 +22,7 @@ export default function App() {
     <AgreementGate onAgreed={() => setShowTutorial(true)}>
       <div className="min-h-screen font-body">
         <Navbar />
+        {location.pathname !== '/' && <SeaDrift />}
         <div key={location.pathname} className="page-enter">
           <Routes location={location}>
             <Route path="/" element={<Home />} />

@@ -70,12 +70,12 @@ input, select, textarea, button {
   100% { background-position: -250% center; }
 }
 
-@keyframes whale-swim {
+@keyframes sea-drift {
   0%   { transform: translate(0, 0); }
   50%  { transform: translate(140vw, -40px); }
   100% { transform: translate(150vw, 0); }
 }
-@keyframes whale-swim-reverse {
+@keyframes sea-drift-reverse {
   0%   { transform: translate(0, 0); }
   50%  { transform: translate(-140vw, 40px); }
   100% { transform: translate(-150vw, 0); }

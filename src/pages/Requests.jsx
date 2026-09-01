@@ -15,8 +15,8 @@ export default function Requests() {
       .from('resource_requests')
       .select('*')
       .neq('subject', 'Feedback')
-      .order('upvotes', { ascending: false })
-    setRequests(data || [])
+    const sorted = (data || []).sort((a, b) => ((b.upvotes || 0) - (b.downvotes || 0)) - ((a.upvotes || 0) - (a.downvotes || 0)))
+    setRequests(sorted)
   }
 
   useEffect(() => { load() }, [])
@@ -28,8 +28,8 @@ export default function Requests() {
     load()
   }
 
-  async function upvote(r) {
-    await supabase.from('resource_requests').update({ upvotes: (r.upvotes || 0) + 1 }).eq('id', r.id)
+  async function vote(r, field) {
+    await supabase.from('resource_requests').update({ [field]: (r[field] || 0) + 1 }).eq('id', r.id)
     load()
   }
 
@@ -59,7 +59,10 @@ export default function Requests() {
               <p className="stamp text-[10px] text-oxblood mb-1">{r.subject}</p>
               <p className="font-body text-sm">{r.description}</p>
             </div>
-            <button onClick={() => upvote(r)} className="font-body text-sm shrink-0 ml-4">▲ {r.upvotes || 0}</button>
+            <div className="flex items-center gap-2 shrink-0 ml-4">
+              <button onClick={() => vote(r, 'upvotes')} className="font-body text-sm">▲ {r.upvotes || 0}</button>
+              <button onClick={() => vote(r, 'downvotes')} className="font-body text-sm">▼ {r.downvotes || 0}</button>
+            </div>
           </div>
         ))}
       </div>

@@ -10,7 +10,7 @@ async function callAdmin(password, action, payload) {
   return res.json()
 }
 
-const TABS = ['Flagged', 'All posts', 'All files']
+const TABS = ['Flagged', 'All posts', 'All files', 'Feedback']
 
 export default function Admin() {
   const [password, setPassword] = useState('')
@@ -19,6 +19,16 @@ export default function Admin() {
   const [tab, setTab] = useState('Flagged')
   const [posts, setPosts] = useState([])
   const [files, setFiles] = useState([])
+  const [feedback, setFeedback] = useState([])
+
+  async function loadFeedback() {
+    const { data } = await supabase
+      .from('resource_requests')
+      .select('*')
+      .eq('subject', 'Feedback')
+      .order('created_at', { ascending: false })
+    setFeedback(data || [])
+  }
 
   async function loadPosts(onlyFlagged) {
     let q = supabase.from('discussion_posts').select('*').order('created_at', { ascending: false })
@@ -37,6 +47,7 @@ export default function Admin() {
     if (tab === 'Flagged') loadPosts(true)
     if (tab === 'All posts') loadPosts(false)
     if (tab === 'All files') loadFiles()
+    if (tab === 'Feedback') loadFeedback()
   }, [unlocked, tab])
 
   async function unlock() {
@@ -127,6 +138,17 @@ export default function Admin() {
                 <p className="font-body text-sm">{f.title} — {f.uploader_name}</p>
               </div>
               <button onClick={() => deleteFile(f)} className="font-body text-sm text-oxblood underline shrink-0 ml-4">Delete</button>
+            </div>
+          ))}
+        </div>
+      )}
+      {tab === 'Feedback' && (
+        <div className="space-y-3">
+          {feedback.length === 0 && <p className="font-body text-inkSoft">Nothing here.</p>}
+          {feedback.map((f) => (
+            <div key={f.id} className="tilt-card bg-parchmentDark border border-ink/10 shadow-card p-4">
+              <p className="stamp text-xs text-inkSoft mb-1">{new Date(f.created_at).toLocaleDateString()}</p>
+              <p className="font-body text-sm">{f.description}</p>
             </div>
           ))}
         </div>

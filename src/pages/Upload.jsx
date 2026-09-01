@@ -213,21 +213,24 @@ export default function Upload() {
             </div>
             <div>
               <label className="font-body text-xs text-inkSoft block mb-1">Subject</label>
-              <select value={subject} onChange={(e) => setSubject(e.target.value)} className="w-full font-body text-sm border border-ink/20 bg-parchment px-3 py-2">
+              <select
+                value={useCourse ? 'Others' : subject}
+                onChange={(e) => {
+                  if (e.target.value === 'Others') setUseCourse(true)
+                  else { setUseCourse(false); setSubject(e.target.value) }
+                }}
+                className="w-full font-body text-sm border border-ink/20 bg-parchment px-3 py-2"
+              >
                 {SUBJECTS.map((s) => <option key={s} value={s}>{s}</option>)}
+                {grade === 'Grade 9' && <option value="Others">Others (pick a Grade 9 course)</option>}
               </select>
             </div>
-            {grade === 'Grade 9' && (
+            {grade === 'Grade 9' && useCourse && (
               <div className="col-span-2">
-                <label className="flex items-center gap-2 font-body text-xs text-inkSoft mb-1 cursor-pointer">
-                  <input type="checkbox" checked={useCourse} onChange={(e) => setUseCourse(e.target.checked)} className="accent-library" />
-                  Tag with a specific Grade 9 course instead
-                </label>
-                {useCourse && (
-                  <select value={course} onChange={(e) => setCourse(e.target.value)} className="w-full font-body text-sm border border-ink/20 bg-parchment px-3 py-2">
-                    {GRADE9_COURSES.map((c) => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                )}
+                <label className="font-body text-xs text-inkSoft block mb-1">Course</label>
+                <select value={course} onChange={(e) => setCourse(e.target.value)} className="w-full font-body text-sm border border-ink/20 bg-parchment px-3 py-2">
+                  {GRADE9_COURSES.map((c) => <option key={c} value={c}>{c}</option>)}
+                </select>
               </div>
             )}
           </div>
