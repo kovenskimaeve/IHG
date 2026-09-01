@@ -55,10 +55,14 @@ export default function WhaleHero() {
   const controlsRef = useRef()
 
   function zoom(factor) {
-    const c = controlsRef.current
-    if (!c) return
-    c.dollyIn ? (factor > 1 ? c.dollyOut(factor) : c.dollyIn(1 / factor)) : null
-    c.update()
+    const controls = controlsRef.current
+    if (!controls) return
+    const camera = controls.object
+    const dir = new THREE.Vector3().subVectors(camera.position, controls.target)
+    const newLength = THREE.MathUtils.clamp(dir.length() * factor, controls.minDistance, controls.maxDistance)
+    dir.setLength(newLength)
+    camera.position.copy(controls.target).add(dir)
+    controls.update()
   }
 
   return (
@@ -72,6 +76,16 @@ export default function WhaleHero() {
           <Scene tint={tint} controlsRef={controlsRef} />
         </Suspense>
       </Canvas>
+
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          mixBlendMode: 'screen',
+          opacity: 0.35,
+          background: 'radial-gradient(ellipse at 20% 10%, rgba(0,212,255,0.25), transparent 55%), radial-gradient(ellipse at 80% 85%, rgba(123,97,255,0.2), transparent 55%)',
+          animation: 'aurora-drift 18s ease-in-out infinite',
+        }}
+      />
 
       <div
         className="absolute left-6 bottom-16 md:left-10 md:bottom-20 max-w-sm px-6 py-5 rounded-2xl"
@@ -109,14 +123,14 @@ export default function WhaleHero() {
       {/* zoom controls — wheel-scroll is intentionally left free for the page itself */}
       <div className="absolute top-24 right-6 md:right-10 flex flex-col gap-2">
         <button
-          onClick={() => zoom(1.15)}
+          onClick={() => zoom(1 / 1.15)}
           className="w-9 h-9 rounded-full flex items-center justify-center"
           style={{ background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.15)', color: '#e8ecf1' }}
         >
           +
         </button>
         <button
-          onClick={() => zoom(1 / 1.15)}
+          onClick={() => zoom(1.15)}
           className="w-9 h-9 rounded-full flex items-center justify-center"
           style={{ background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.15)', color: '#e8ecf1' }}
         >
@@ -128,7 +142,7 @@ export default function WhaleHero() {
 
       <div
         className="absolute left-6 bottom-6 md:left-10"
-        style={{ color: 'rgba(232,236,241,0.22)', fontSize: '0.6rem', letterSpacing: '0.03em' }}
+        style={{ color: 'rgba(232,236,241,0.15)', fontSize: '0.45rem', letterSpacing: '0.02em' }}
       >
         Whale model via Sketchfab, CC Attribution
       </div>
