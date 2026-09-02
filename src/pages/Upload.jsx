@@ -67,6 +67,7 @@ export default function Upload() {
   }
 
   async function handleUpload() {
+    if (!title.trim()) return setStatus('Add a title for this resource.')
     const finalName = uploaderName.trim() || 'Anonymous'
     if (containsProfanity(finalName)) return setStatus('That display name isn\u2019t appropriate — pick another.')
     if (!confirmed) return setStatus('Please confirm this follows the upload rules before submitting.')
@@ -237,11 +238,11 @@ export default function Upload() {
         )}
 
         <div>
-          <label className="font-body text-xs text-inkSoft block mb-1">Title</label>
+          <label className="font-body text-xs text-inkSoft block mb-1">Title *</label>
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="e.g. G10 Maths Unit 3 Practice Paper (leave blank to use the file name)"
+            placeholder="e.g. G10 Maths Unit 3 Practice Paper"
             className="w-full font-body text-sm border border-ink/20 bg-parchment px-3 py-2"
           />
         </div>

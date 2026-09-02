@@ -33,14 +33,19 @@ export async function sha256Hex(file) {
 export const GRADES = ['Grade 6', 'Grade 7', 'Grade 8', 'Grade 9', 'Grade 10', 'Grade 11']
 
 export const SUBJECTS = [
-  'English Language and Literature',
-  'English Language Acquisition',
+  'Physical Education',
   'Chinese Language and Literature',
-  'Chinese Language Acquisition',
-  'Individuals and Societies',
+  'Chinese Language and Acquisition',
+  'English Language and Literature',
+  'English Language and Acquisition',
   'Design',
   'Mathematics',
+  'Extended Mathematics',
+  'Mathematics (Standard)',
   'Science',
+  'Chinese Humanities LL',
+  'Chinese Humanities LA',
   'Arts',
-  'Chinese Humanities',
+  'Individuals and Societies',
+  'Information Technology (IT)',
 ]

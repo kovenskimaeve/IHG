@@ -65,8 +65,18 @@ export default function WhaleHero() {
     controls.update()
   }
 
+  function handleWheel(e) {
+    if (!e.shiftKey) return // plain scroll passes through untouched, scrolls the page
+    e.preventDefault()
+    zoom(e.deltaY > 0 ? 1.08 : 1 / 1.08)
+  }
+
   return (
-    <div className="relative w-full h-screen overflow-hidden" style={{ background: 'linear-gradient(180deg, #060a14, #020408)' }}>
+    <div
+      className="relative w-full h-screen overflow-hidden"
+      style={{ background: 'linear-gradient(180deg, #060a14, #020408)' }}
+      onWheel={handleWheel}
+    >
       <Canvas
         camera={{ position: [0, 1, 9], fov: 45 }}
         dpr={[1, 1.75]}
@@ -121,18 +131,21 @@ export default function WhaleHero() {
       </div>
 
       {/* zoom controls — wheel-scroll is intentionally left free for the page itself */}
-      <div className="absolute top-24 right-6 md:right-10 flex flex-col gap-2">
-        <button
-          onClick={() => zoom(1 / 1.15)}
-          className="w-9 h-9 rounded-full flex items-center justify-center"
-          style={{ background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.15)', color: '#e8ecf1' }}
+      <div
+        className="absolute top-28 right-6 md:right-10 flex flex-col gap-2 p-2 rounded-xl"
+        style={{ background: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.2)' }}
+      >
+        <p style={{ color: 'rgba(232,236,241,0.6)', fontSize: '0.55rem', letterSpacing: '0.1em', textAlign: 'center' }}>ZOOM</p>        <button
+          onClick={() => zoom(1 / 1.2)}
+          className="w-11 h-11 rounded-lg flex items-center justify-center font-display text-xl"
+          style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.25)', color: '#e8ecf1' }}
         >
           +
         </button>
         <button
-          onClick={() => zoom(1.15)}
-          className="w-9 h-9 rounded-full flex items-center justify-center"
-          style={{ background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.15)', color: '#e8ecf1' }}
+          onClick={() => zoom(1.2)}
+          className="w-11 h-11 rounded-lg flex items-center justify-center font-display text-xl"
+          style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.25)', color: '#e8ecf1' }}
         >
           −
         </button>
