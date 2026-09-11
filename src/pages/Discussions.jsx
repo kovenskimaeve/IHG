@@ -48,12 +48,16 @@ export default function Discussions() {
     if (containsProfanity(authorName) || containsProfanity(text)) return setError('Keep it appropriate, please.')
     if (!text.trim()) return
     setError('')
-    await supabase.from('discussion_posts').insert({
+    const { error: insertError } = await supabase.from('discussion_posts').insert({
       channel,
       parent_id: parentId,
       author_name: authorName.trim(),
       body: text.trim(),
     })
+    if (insertError) {
+      setError(`Couldn't post: ${insertError.message}`)
+      return
+    }
     if (parentId) {
       setReplyText('')
       setReplyOpenFor(null)

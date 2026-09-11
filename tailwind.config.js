@@ -9,8 +9,8 @@ export default {
         inkSoft: '#6E8394',
         library: '#586780',
         libraryDeep: '#37536A',
-        oxblood: '#5C8A7A',
-        oxbloodSoft: '#8AAFA0',
+        oxblood: '#8C3A3A',
+        oxbloodSoft: '#B97070',
         brass: '#B79C6B',
       },
       fontFamily: {
