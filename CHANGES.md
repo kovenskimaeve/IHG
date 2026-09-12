@@ -87,3 +87,41 @@ GitHub repo, commit, and push (Vercel will redeploy automatically):
 
 Then run the SQL migration and double check the env vars as described above.
 I verified the whole project installs and builds cleanly (`npm install && npm run build`).
+
+---
+
+## Round 2: Home page aesthetics + usability
+
+New dependency: **`lucide-react`** (icons) — already added to `package.json`, just
+run `npm install` after pulling these files.
+
+1. **Cleared up the "mystery" hero labels.**
+   - "WHALE COLOR" → relabeled "Tint the whale" in normal sentence case, right
+     above the color swatches it controls.
+   - "SCROLL // EXPLORE" (a dead-end floating button that didn't actually do
+     anything) → replaced with a real **"Explore the archive ↓"** button
+     placed directly under the hero tagline, which smooth-scrolls down to the
+     archive section. Removed the now-unused `ScrollHint.jsx`.
+2. **Redesigned the four home cards** (`src/pages/Home.jsx`) as an asymmetric,
+   ocean-toned bento layout instead of identical white boxes: circular
+   "porthole" icon badges (`lucide-react`), a large Past Papers tile, live
+   counts pulled from your real data ("N papers shared", "N posts this week"
+   — genuine counts, not placeholder numbers), and a "+ Request a missing
+   file" link on the Past Papers card that jumps to `/requests`.
+3. **Added a real global search** (`src/components/HomeSearch.jsx`): a search
+   bar plus grade filter chips and a subject dropdown, sitting right above
+   the archive cards. It searches past papers, lesson slides, and study
+   guides together and lets you preview or download straight from the
+   results — no more digging through separate category pages first.
+4. **Spotlight cursor effect** (`src/components/SpotlightGlow.jsx`): a soft
+   glow that follows the pointer across the dark ocean band. Respects
+   `prefers-reduced-motion` (skips itself if the visitor has that set).
+5. The whole ocean gradient now runs continuously from the whale hero into
+   the archive section, rather than cutting abruptly to the flat parchment
+   background — ties the "ocean theme" through the whole landing page.
+
+Files touched/added this round: `src/pages/Home.jsx`,
+`src/components/whale/WhaleHero.jsx`, `src/components/HomeSearch.jsx` (new),
+`src/components/SpotlightGlow.jsx` (new), `package.json`. Removed
+`src/components/whale/ScrollHint.jsx` (dead code after the CTA rework).
+Verified with a clean `npm install && npm run build`.

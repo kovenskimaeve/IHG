@@ -4,7 +4,6 @@ import { OrbitControls, Sparkles, Environment } from '@react-three/drei'
 import { EffectComposer, Bloom, ChromaticAberration, Noise, Vignette } from '@react-three/postprocessing'
 import * as THREE from 'three'
 import WhaleModel from './WhaleModel'
-import ScrollHint from './ScrollHint'
 
 const TINTS = ['#ffffff', '#8fb3d9', '#7ac9b8', '#d9a86c', '#c98a9c', '#a68fd9']
 
@@ -104,8 +103,20 @@ export default function WhaleHero() {
         <h1 style={{ color: '#e8ecf1', opacity: 0.9, fontWeight: 200, letterSpacing: '0.12em', fontSize: '1.6rem', lineHeight: 1.3, marginBottom: '0.75rem' }}>
           ISF HOLY GRAIL
         </h1>
-        <p style={{ color: 'rgba(232,236,241,0.5)', fontSize: '0.65rem', letterSpacing: '0.08em', marginBottom: '0.4rem' }}>
-          WHALE COLOR
+        <p style={{ color: 'rgba(232,236,241,0.7)', fontSize: '0.85rem', lineHeight: 1.55, marginBottom: '1.1rem', maxWidth: '20rem' }}>
+          Past papers, slides, and study guides shared by ISF students — plus
+          a place to ask questions and request what's missing.
+        </p>
+        <button
+          onClick={() => document.getElementById('archive')?.scrollIntoView({ behavior: 'smooth' })}
+          className="mb-6 inline-flex items-center gap-2 rounded-full px-4 py-2 font-body text-sm hover:bg-white/10 transition-colors"
+          style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.25)', color: '#e8ecf1' }}
+        >
+          Explore the archive
+          <span aria-hidden="true">↓</span>
+        </button>
+        <p style={{ color: 'rgba(232,236,241,0.55)', fontSize: '0.7rem', letterSpacing: '0.03em', marginBottom: '0.5rem', fontStyle: 'italic', fontFamily: '"Fraunces", serif' }}>
+          Tint the whale
         </p>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
           {TINTS.map((t) => (
@@ -150,8 +161,6 @@ export default function WhaleHero() {
           −
         </button>
       </div>
-
-      <ScrollHint />
 
       <div
         className="absolute left-6 bottom-6 md:left-10"
