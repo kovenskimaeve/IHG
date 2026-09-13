@@ -44,7 +44,7 @@ export default function SpotlightGlow({ color = 'rgba(120,190,220,0.35)' }) {
       style={{
         '--spot-x': '50%',
         '--spot-y': '40%',
-        background: `radial-gradient(480px circle at var(--spot-x) var(--spot-y), ${color}, transparent 70%)`,
+        background: `radial-gradient(320px circle at var(--spot-x) var(--spot-y), rgba(255,255,255,0.16), ${color} 35%, transparent 68%)`,
         transition: 'background 0.15s ease-out',
         mixBlendMode: 'screen',
       }}

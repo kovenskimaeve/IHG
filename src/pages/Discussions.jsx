@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../supabaseClient'
-import { SUBJECTS, containsProfanity, getDeviceId } from '../lib/device'
+import { SUBJECTS, GRADES, containsProfanity, getDeviceId } from '../lib/device'
 import { GRADE9_COURSES } from '../lib/lessonFolders'
 
 const CATEGORIES = ['Q&A', 'Tips & Discussion']
@@ -14,8 +14,10 @@ export default function Discussions() {
   const [category, setCategory] = useState('Q&A')
   const [subjectChoice, setSubjectChoice] = useState('General')
   const [course, setCourse] = useState(GRADE9_COURSES[0])
+  const [gradeFilter, setGradeFilter] = useState('') // '' = all grades
   const [posts, setPosts] = useState([])
   const [authorName, setAuthorName] = useState('')
+  const [postGrade, setPostGrade] = useState('')
   const [body, setBody] = useState('')
   const [replyOpenFor, setReplyOpenFor] = useState(null)
   const [replyText, setReplyText] = useState('')
@@ -25,12 +27,14 @@ export default function Discussions() {
   const channel = `${category}::${subject}`
 
   async function load() {
-    const { data } = await supabase
+    let q = supabase
       .from('discussion_posts')
       .select('*')
       .eq('channel', channel)
       .eq('hidden', false)
       .order('created_at', { ascending: true })
+    if (gradeFilter) q = q.eq('grade', gradeFilter)
+    const { data } = await q
     setPosts(data || [])
   }
 
@@ -41,10 +45,11 @@ export default function Discussions() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'discussion_posts', filter: `channel=eq.${channel}` }, load)
       .subscribe()
     return () => supabase.removeChannel(sub)
-  }, [channel])
+  }, [channel, gradeFilter])
 
   async function submitPost(parentId, text) {
     if (!authorName.trim()) return setError('Add a display name first (or type Anonymous).')
+    if (!postGrade) return setError('Pick your grade level first.')
     if (containsProfanity(authorName) || containsProfanity(text)) return setError('Keep it appropriate, please.')
     if (!text.trim()) return
     setError('')
@@ -52,6 +57,7 @@ export default function Discussions() {
       channel,
       parent_id: parentId,
       author_name: authorName.trim(),
+      grade: postGrade,
       body: text.trim(),
     })
     if (insertError) {
@@ -127,15 +133,33 @@ export default function Discussions() {
             {GRADE9_COURSES.map((c) => <option key={c} value={c}>{c}</option>)}
           </select>
         )}
+        <select
+          value={gradeFilter}
+          onChange={(e) => setGradeFilter(e.target.value)}
+          className="font-body text-sm border border-ink/25 bg-parchment text-ink px-3 py-2"
+        >
+          <option value="">All grades</option>
+          {GRADES.map((g) => <option key={g} value={g}>{g}</option>)}
+        </select>
       </div>
 
       <div className="bg-parchmentDark border border-ink/20 shadow-card p-5 mb-8">
-        <input
-          value={authorName}
-          onChange={(e) => setAuthorName(e.target.value)}
-          placeholder="Your display name, or 'Anonymous'"
-          className="w-full font-body text-sm border border-ink/25 bg-parchment px-3 py-2 mb-3"
-        />
+        <div className="flex flex-wrap gap-3 mb-3">
+          <input
+            value={authorName}
+            onChange={(e) => setAuthorName(e.target.value)}
+            placeholder="Your display name, or 'Anonymous'"
+            className="flex-1 min-w-[160px] font-body text-sm border border-ink/25 bg-parchment px-3 py-2"
+          />
+          <select
+            value={postGrade}
+            onChange={(e) => setPostGrade(e.target.value)}
+            className="font-body text-sm border border-ink/25 bg-parchment text-ink px-3 py-2"
+          >
+            <option value="">Your grade…</option>
+            {GRADES.map((g) => <option key={g} value={g}>{g}</option>)}
+          </select>
+        </div>
         <textarea
           value={body}
           onChange={(e) => setBody(e.target.value)}
@@ -153,7 +177,7 @@ export default function Discussions() {
         {topLevel.map((post) => (
           <div key={post.id} className="tilt-card bg-parchment border border-ink/20 shadow-card p-5">
             <div className="flex justify-between items-start mb-2">
-              <p className="stamp text-[10px] text-inkSoft">{post.author_name} · {formatDate(post.created_at)}</p>
+              <p className="stamp text-[10px] text-inkSoft">{post.author_name}{post.grade ? ` · ${post.grade}` : ''} · {formatDate(post.created_at)}</p>
               <button onClick={() => report(post)} className="font-body text-xs text-inkSoft underline">Report</button>
             </div>
             <p className="font-body text-sm leading-relaxed mb-3 whitespace-pre-wrap">{post.body}</p>
@@ -167,7 +191,7 @@ export default function Discussions() {
 
             {repliesFor(post.id).map((r) => (
               <div key={r.id} className="ml-4 pl-4 border-l-2 border-ink/15 mb-3">
-                <p className="stamp text-[10px] text-inkSoft mb-1">{r.author_name} · {formatDate(r.created_at)}</p>
+                <p className="stamp text-[10px] text-inkSoft mb-1">{r.author_name}{r.grade ? ` · ${r.grade}` : ''} · {formatDate(r.created_at)}</p>
                 <p className="font-body text-sm leading-relaxed mb-2 whitespace-pre-wrap">{r.body}</p>
                 <div className="flex items-center gap-4">
                   <button onClick={() => vote(r, 1)} className="font-body text-xs">▲ {r.upvotes || 0}</button>

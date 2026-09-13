@@ -93,3 +93,15 @@ input, select, textarea, button {
   0%, 100% { transform: translate(0, 0) scale(1); }
   50% { transform: translate(-4%, 3%) scale(1.08); }
 }
+
+.sway-slow {
+  animation: sway-slow 9s ease-in-out infinite;
+  transform-origin: bottom center;
+}
+@keyframes sway-slow {
+  0%, 100% { transform: rotate(-2.5deg); }
+  50% { transform: rotate(2.5deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sway-slow { animation: none; }
+}

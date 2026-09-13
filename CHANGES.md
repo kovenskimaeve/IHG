@@ -125,3 +125,68 @@ Files touched/added this round: `src/pages/Home.jsx`,
 `src/components/SpotlightGlow.jsx` (new), `package.json`. Removed
 `src/components/whale/ScrollHint.jsx` (dead code after the CTA rework).
 Verified with a clean `npm install && npm run build`.
+
+---
+
+## Round 3: Discussion grade filtering, glow tuning, ocean decor
+
+1. **`supabase/migration-4.sql`** — Discussions already tags each post with a
+   `grade` and has an "All grades" filter dropdown in the UI, but the
+   database itself had no `grade` column, so every post submission would
+   have failed with a Postgres error. Run this migration (after
+   migration-3.sql) to add the column — nullable, so nothing existing breaks.
+2. **Glow retuned** (`src/components/SpotlightGlow.jsx`): smaller and more
+   defined — a bright core fading to the ocean tint then to nothing by
+   ~70% — so it reads as a flashlight beam rather than a soft wash.
+3. **Ocean decor** (`src/components/OceanDecor.jsx`, new): a few low-opacity
+   line-art coral, kelp, and shell silhouettes scattered around the edges of
+   the archive section, swaying very slowly. They sit *behind* the spotlight
+   glow, so as the glow passes over them they light up a little — the
+   flashlight-discovering-things-in-the-dark effect. Kept subtle and off to
+   the sides so they don't compete with the cards or search bar. Respects
+   `prefers-reduced-motion` (sway turns off).
+
+---
+
+## Round 3: grade filter, ocean motifs, glow tuning
+
+1. **Discussions grade filter** — wired up end to end: posting requires
+   picking a grade, and there's an "All grades" / Grade 6–11 filter above the
+   thread. Added `supabase/migration-4.sql` (adds the `grade` column —
+   without it every post would fail). **Run this migration too.** Posts are
+   tagged with a grade rather than split into fully separate grade-only
+   rooms, so a Grade 11 Econ question and a Grade 9 one can still share a
+   subject thread by default, but you can narrow to just your grade when you
+   want to.
+2. **Ocean motifs** — added `src/components/OceanMotifs.jsx`: simple
+   line-art coral, shell, seaweed, and bubble motifs in the same thin-stroke
+   style as the existing icons. Each home card now has one tucked into its
+   corner (coral for Past Papers, bubbles for Lesson Slides, a shell for
+   Study Guides, seaweed for Discussions), and a quiet reef silhouette now
+   sits along the bottom edge of the ocean band.
+3. **Spotlight size** — already tuned to a ~320px beam with a bright core
+   that falls off quickly (a flashlight, not a floodlight) — left as is.
+
+---
+
+## Round 3: Grade-level differentiation in Discussions
+
+Run **`supabase/migration-4.sql`** in the Supabase SQL editor first — it adds
+a nullable `grade` column to `discussion_posts`. Nullable on purpose: it
+doesn't touch or hide any post that already exists, they just won't have a
+grade tag until someone replies/re-posts.
+
+- Posting now requires picking "Your grade" alongside your display name.
+- Browsing has an optional "All grades" / specific-grade filter next to the
+  subject picker — leave it on "All grades" to see everything like before, or
+  narrow to just your own grade.
+- Each post/reply's byline now shows the poster's grade when it has one
+  (older posts made before this migration just won't show a grade — that's
+  expected, not a bug).
+
+I didn't split channels per-grade at the database level (e.g. a separate
+"Mathematics · Grade 9" channel) because with a school-sized user base, that
+risks fragmenting into a lot of near-empty channels. A filter on top of one
+shared channel gets you the "see only my grade" benefit without that
+downside, and it's easy to change later if activity grows and you want
+harder separation.
