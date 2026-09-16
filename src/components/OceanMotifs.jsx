@@ -59,7 +59,7 @@ export function ReefSilhouette({ color = '#0a1f2e', className }) {
       preserveAspectRatio="none"
       className={className}
       aria-hidden="true"
-      style={{ width: '100%', height: '100%', display: 'block' }}
+      style={{ display: 'block' }}
     >
       <path
         fill={color}

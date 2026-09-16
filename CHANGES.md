@@ -190,3 +190,51 @@ risks fragmenting into a lot of near-empty channels. A filter on top of one
 shared channel gets you the "see only my grade" benefit without that
 downside, and it's easy to change later if activity grows and you want
 harder separation.
+
+---
+
+## Round 4: fixed the broken archive section + a real crash bug
+
+You sent screenshots of the archive cards looking broken — jagged dark shape
+cutting through the text, card content overflowing its box. Found it:
+
+**The bug:** `ReefSilhouette` (a decorative thin reef strip meant to sit
+along the bottom of the dark archive section, ~80px tall) had its own
+hardcoded `style={{ width: '100%', height: '100%' }}` baked into the
+component. Inline styles always beat the CSS classes I was passing in
+(`h-14 md:h-20`), and since its container's height isn't fixed (it's sized by
+its content), that `height: 100%` didn't resolve to a sane number — the reef
+strip ballooned to hundreds of pixels tall and rendered on top of the cards
+instead of staying a thin strip underneath them. Fixed in
+`src/components/OceanMotifs.jsx` (removed the hardcoded inline size) and
+`src/pages/Home.jsx` (now explicitly passes `w-full` alongside the height
+classes, since the component no longer supplies its own).
+
+**A separate, more serious bug I found while testing the fix:** the whale
+hero loads its lighting/reflections from an external file
+(`raw.githack.com`, via drei's `Environment preset="sunset"`). If that
+request ever fails — a network hiccup, or (realistically, given this is a
+school site) a content filter blocking an unfamiliar CDN — the 3D scene threw
+an uncaught error, and because nothing in the app catches errors, **the
+entire site unmounted to a blank white page**. I removed that external
+dependency (the hero now uses only its own local lights — a small visual
+trade, but the models it actually needs are already self-hosted under
+`/models/`, so the hero has no third-party dependency left at all) and added
+`src/components/ErrorBoundary.jsx`, wrapped around the whale hero specifically
+and around the whole app in `src/App.jsx` as a last line of defense — so if
+anything, anywhere, throws an unexpected error in the future, that one
+section fails gracefully (a plain gradient, or a "Something broke — Reload"
+message) instead of taking down the whole page.
+
+**Also, while I had things open:** gave the four archive cards distinct
+accent colors pulled from the whale's own tint palette (blue / amber / teal /
+rose) instead of one flat cyan treatment on all four, and turned the
+"+ Request a missing file" link into a filled pill button — closer to the
+richer, more colorful feel of your inspo screenshot, without introducing
+external photography (would've meant either hotlinking someone else's images
+or a licensing question I'd rather you make deliberately, not by default).
+
+I rebuilt this one and actually loaded it in a headless browser to check the
+render, not just the build — screenshotted it before and after to confirm
+the fix, since the last two rounds I could only verify with `npm run build`
+succeeding, which doesn't catch layout bugs like this one.

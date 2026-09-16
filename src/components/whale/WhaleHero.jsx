@@ -1,6 +1,6 @@
 import { Suspense, useRef, useState } from 'react'
 import { Canvas } from '@react-three/fiber'
-import { OrbitControls, Sparkles, Environment } from '@react-three/drei'
+import { OrbitControls, Sparkles } from '@react-three/drei'
 import { EffectComposer, Bloom, ChromaticAberration, Noise, Vignette } from '@react-three/postprocessing'
 import * as THREE from 'three'
 import WhaleModel from './WhaleModel'
@@ -13,11 +13,11 @@ function Scene({ tint, controlsRef }) {
       <color attach="background" args={['#060a14']} />
       <fog attach="fog" args={['#060a14', 5, 20]} />
 
-      <ambientLight intensity={0.18} color="#3a5a7a" />
-      <directionalLight position={[1, 12, -2]} intensity={3} color="#dff0ff" />
+      <ambientLight intensity={0.22} color="#3a5a7a" />
+      <directionalLight position={[1, 12, -2]} intensity={3.4} color="#dff0ff" />
       <pointLight position={[-4, -1, 3]} intensity={0.5} color="#00d4ff" />
       <pointLight position={[0, -2, 6]} intensity={0.25} color="#7b61ff" />
-      <Environment preset="sunset" environmentIntensity={0.4} />
+      <pointLight position={[3, 2, 4]} intensity={0.3} color="#ffffff" />
 
       <Sparkles count={220} scale={[16, 12, 10]} size={1.3} speed={0.15} opacity={0.4} color="#bcd6ea" />
 

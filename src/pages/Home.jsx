@@ -5,9 +5,11 @@ import { supabase } from '../supabaseClient'
 import SpotlightGlow from '../components/SpotlightGlow'
 import OceanDecor from '../components/OceanDecor'
 import HomeSearch from '../components/HomeSearch'
+import ErrorBoundary from '../components/ErrorBoundary'
 import { Coral, Shell, Seaweed, Bubbles, ReefSilhouette } from '../components/OceanMotifs'
 
 const WhaleHero = lazy(() => import('../components/whale/WhaleHero'))
+const heroFallback = <div className="w-full h-screen" style={{ background: 'linear-gradient(180deg, #0a0e1a, #030508)' }} />
 
 const SECTIONS = [
   {
@@ -19,7 +21,8 @@ const SECTIONS = [
     countKey: 'past_paper',
     countLabel: 'papers shared',
     Motif: Coral,
-    motifSize: 96,
+    motifSize: 110,
+    accent: '#8fb3d9',
   },
   {
     to: '/lesson-slides',
@@ -30,7 +33,8 @@ const SECTIONS = [
     countKey: 'lesson_slide',
     countLabel: 'decks shared',
     Motif: Bubbles,
-    motifSize: 60,
+    motifSize: 64,
+    accent: '#d9a86c',
   },
   {
     to: '/study-guides',
@@ -41,7 +45,8 @@ const SECTIONS = [
     countKey: 'study_guide',
     countLabel: 'guides shared',
     Motif: Shell,
-    motifSize: 60,
+    motifSize: 64,
+    accent: '#7ac9b8',
   },
   {
     to: '/discussions',
@@ -52,7 +57,8 @@ const SECTIONS = [
     countKey: 'discussions',
     countLabel: 'posts this week',
     Motif: Seaweed,
-    motifSize: 72,
+    motifSize: 78,
+    accent: '#c98a9c',
   },
 ]
 
@@ -83,9 +89,11 @@ export default function Home() {
 
   return (
     <div>
-      <Suspense fallback={<div className="w-full h-screen" style={{ background: 'linear-gradient(180deg, #0a0e1a, #030508)' }} />}>
-        <WhaleHero />
-      </Suspense>
+      <ErrorBoundary fallback={heroFallback}>
+        <Suspense fallback={heroFallback}>
+          <WhaleHero />
+        </Suspense>
+      </ErrorBoundary>
 
       <div
         id="archive"
@@ -123,20 +131,25 @@ export default function Home() {
                   {/* Stretched link: makes the whole card clickable without nesting a second <a> inside it */}
                   <Link to={s.to} className="absolute inset-0 rounded-2xl" aria-label={s.title} />
 
-                  <Motif size={s.motifSize} opacity={0.22} className="absolute -right-2 -bottom-2 pointer-events-none" />
+                  {/* Colored glow zone, tinted per section so the grid doesn't read as one flat color */}
+                  <div
+                    className="absolute -top-10 -right-10 w-40 h-40 rounded-full pointer-events-none"
+                    style={{ background: s.accent, opacity: 0.18, filter: 'blur(40px)' }}
+                  />
+                  <Motif size={s.motifSize} color={s.accent} opacity={0.3} className="absolute -right-3 -bottom-3 pointer-events-none" />
 
                   <div className="relative pointer-events-none">
                     <div
                       className="w-11 h-11 rounded-full flex items-center justify-center mb-4"
-                      style={{ background: 'rgba(120,190,220,0.15)', border: '1px solid rgba(120,190,220,0.35)' }}
+                      style={{ background: `${s.accent}26`, border: `1px solid ${s.accent}59` }}
                     >
-                      <Icon size={20} color="#bcd6ea" strokeWidth={1.6} aria-hidden="true" />
+                      <Icon size={20} color={s.accent} strokeWidth={1.6} aria-hidden="true" />
                     </div>
                     <h3 className="font-display text-xl mb-1" style={{ color: '#e8ecf1' }}>{s.title}</h3>
                     <p className="font-body text-sm" style={{ color: 'rgba(232,236,241,0.6)' }}>{s.desc}</p>
                   </div>
 
-                  <div className="relative flex items-center justify-between mt-6 pointer-events-none">
+                  <div className="relative flex items-center justify-between mt-6 pointer-events-none gap-3">
                     {count !== undefined && (
                       <span className="font-body text-xs" style={{ color: 'rgba(232,236,241,0.45)' }}>
                         {count} {s.countLabel}
@@ -145,8 +158,8 @@ export default function Home() {
                     {s.to === '/past-papers' && (
                       <Link
                         to="/requests"
-                        className="pointer-events-auto font-body text-xs underline"
-                        style={{ color: '#bcd6ea' }}
+                        className="pointer-events-auto font-body text-xs rounded-full px-3 py-1.5 whitespace-nowrap"
+                        style={{ background: s.accent, color: '#0d2438' }}
                       >
                         + Request a missing file
                       </Link>
@@ -158,7 +171,7 @@ export default function Home() {
           </div>
         </div>
 
-        <ReefSilhouette color="#081826" className="absolute bottom-0 left-0 h-14 md:h-20 pointer-events-none" />
+        <ReefSilhouette color="#081826" className="absolute bottom-0 left-0 w-full h-14 md:h-20 pointer-events-none" />
       </div>
     </div>
   )
