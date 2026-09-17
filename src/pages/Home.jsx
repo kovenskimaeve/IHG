@@ -171,7 +171,7 @@ export default function Home() {
           </div>
         </div>
 
-        <ReefSilhouette color="#081826" className="absolute bottom-0 left-0 w-full h-14 md:h-20 pointer-events-none" />
+        <ReefSilhouette color="#081826" accent="#7ac9b8" className="absolute bottom-0 left-0 w-full h-32 md:h-48 pointer-events-none" />
       </div>
     </div>
   )

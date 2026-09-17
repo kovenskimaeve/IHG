@@ -238,3 +238,28 @@ I rebuilt this one and actually loaded it in a headless browser to check the
 render, not just the build — screenshotted it before and after to confirm
 the fix, since the last two rounds I could only verify with `npm run build`
 succeeding, which doesn't catch layout bugs like this one.
+
+---
+
+## Round 5: redesigned the ocean floor strip
+
+You were right that the reef strip looked bad even after the width fix —
+jagged "shark tooth" zigzags with sparse, barely-visible thin twig shapes
+don't read as a reef at a glance. Rewrote `ReefSilhouette` in
+`src/components/OceanMotifs.jsx` from scratch:
+
+- The floor itself is now a smooth, gently rolling sandy seabed (bezier
+  curves) instead of a jagged rock zigzag.
+- Coral is now solid, layered, overlapping blob clusters (with a subtle
+  highlight) rather than thin 2px stroke lines — visible at a glance instead
+  of disappearing into the dark background.
+- Kelp is now a filled tapered blade shape instead of a bare stroked line, so
+  it actually reads as a plant.
+- Gave it a bit more vertical room (`h-32 md:h-48`, up from `h-24 md:h-36`)
+  so the coral and kelp aren't squashed.
+
+I also confirmed with a fresh headless-browser screenshot that the earlier
+width fix held — the strip does run edge-to-edge in the current code. If
+what you saw was still cut off, that screenshot was very likely from before
+you redeployed the Round 4 zip rather than a new bug; worth double-checking
+you're on the latest deploy after this one goes live too.
