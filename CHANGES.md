@@ -263,3 +263,55 @@ width fix held — the strip does run edge-to-edge in the current code. If
 what you saw was still cut off, that screenshot was very likely from before
 you redeployed the Round 4 zip rather than a new bug; worth double-checking
 you're on the latest deploy after this one goes live too.
+
+---
+
+## Round 6: maintenance mode + how to shut things down in an emergency
+
+Two different tools for two different situations — read both before you need
+either one.
+
+### 1. Planned maintenance / "I need to edit something live" (a few minutes, not urgent)
+
+New env var: **`VITE_MAINTENANCE_MODE`**. Set it to `true` in Vercel
+(Settings → Environment Variables, Production), then redeploy (Vite env vars
+are baked in at build time, so this needs a rebuild — click the "..." on the
+latest deployment → Redeploy, doesn't need a new git push, takes about a
+minute). Every route except `/admin` will show a clean "Diving for a bit —
+back soon" screen instead of the real site. `/admin` still works normally so
+you can log in and check things while it's up. No data is touched — it's
+purely a front-end gate. Set it back to `false` and redeploy to bring the
+site back. I tested both states in a headless browser before shipping this
+(screenshots of the maintenance screen, and confirmed `/admin` stays
+reachable while everything else is blocked).
+
+### 2. Something is actively wrong right now (spam flood, abuse, possible compromise)
+
+Don't wait for a Vercel redeploy — the fastest kill switch doesn't involve
+Vercel at all:
+
+- **Fastest (seconds, no redeploy): rotate your Supabase anon key.**
+  Supabase dashboard → Settings → API → regenerate the `anon` `public` key.
+  Every student's browser is using that key for every read/write, so this
+  instantly breaks the entire public-facing site (pages will show load
+  errors) without touching any data. Your `service_role` key is separate and
+  unaffected, so `/api/admin` — and therefore `/admin` — keeps working, so
+  you can still see what happened and clean it up. When you're ready to
+  bring it back: update `VITE_SUPABASE_ANON_KEY` in Vercel to the new key
+  and redeploy.
+- **If it's specifically spam/abuse rather than a security issue:** you can
+  be more surgical — in the Supabase SQL Editor, run
+  `drop policy "public insert posts" on discussion_posts;` (swap the table/
+  policy name for whichever is being abused) to stop new writes while
+  reads still work. Re-add it later by re-running the relevant section of
+  `migration-3.sql`.
+- **If you suspect the GitHub repo or Vercel account itself was
+  compromised:** Vercel → Deployments → "..." on your last known-good
+  deployment → **Promote to Production** (this is Vercel's instant
+  rollback — takes effect in seconds, no rebuild). Then rotate your GitHub
+  and Vercel account passwords/tokens.
+
+For a real incident I'd reach for the anon key rotation first — it's the
+single fastest way to take the whole public site offline, it's reversible in
+one click, and it doesn't lock you out of `/admin` while you sort things
+out.

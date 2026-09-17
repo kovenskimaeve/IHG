@@ -6,6 +6,7 @@ import AgreementGate from './components/AgreementGate'
 import Tutorial from './components/Tutorial'
 import FeedbackButton from './components/FeedbackButton'
 import ErrorBoundary from './components/ErrorBoundary'
+import MaintenanceScreen from './components/MaintenanceScreen'
 import Home from './pages/Home'
 import Browse from './pages/Browse'
 import LessonSlides from './pages/LessonSlides'
@@ -14,6 +15,8 @@ import Discussions from './pages/Discussions'
 import StudyLinks from './pages/StudyLinks'
 import Requests from './pages/Requests'
 import Admin from './pages/Admin'
+
+const MAINTENANCE_MODE = import.meta.env.VITE_MAINTENANCE_MODE === 'true'
 
 function PageCrashed() {
   return (
@@ -33,6 +36,15 @@ function PageCrashed() {
 export default function App() {
   const [showTutorial, setShowTutorial] = useState(false)
   const location = useLocation()
+
+  // Maintenance mode blocks every route except /admin, so an admin can still
+  // log in to investigate or clean up while the site is down for everyone
+  // else. Toggle with the VITE_MAINTENANCE_MODE env var in Vercel, then
+  // redeploy (Vite env vars are baked in at build time, so this isn't
+  // instant — see CHANGES.md for the faster, no-redeploy emergency option).
+  if (MAINTENANCE_MODE && location.pathname !== '/admin') {
+    return <MaintenanceScreen />
+  }
 
   return (
     <AgreementGate onAgreed={() => setShowTutorial(true)}>
