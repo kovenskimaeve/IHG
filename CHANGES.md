@@ -315,3 +315,39 @@ For a real incident I'd reach for the anon key rotation first — it's the
 single fastest way to take the whole public site offline, it's reversible in
 one click, and it doesn't lock you out of `/admin` while you sort things
 out.
+
+---
+
+## Round 7: restrict the site to your 10 testers only
+
+Checked first: Vercel's built-in password protection isn't available on the
+Hobby (free) plan for your actual production URL — it's a $150/mo add-on on
+Pro, or included on Enterprise. Their free "Vercel Authentication" option
+only protects preview/auto-generated URLs, not the plain
+`isfholygrail.vercel.app` you're sharing. So I built an app-level gate
+instead, same pattern as the admin password.
+
+New env var: **`VITE_ACCESS_CODE`**. Set it in Vercel to any code you pick
+(e.g. `whale2026`) and redeploy. Every visitor now has to enter that code
+before they see anything else — the terms gate, the whole site, none of it
+renders until they do. `/admin` bypasses this gate entirely, so you can
+always get in yourself. Leave the env var unset (or delete it) and the gate
+has zero effect — nothing changes from how the site behaves right now.
+
+I tested all four states in a headless browser before shipping this: gate
+blocks the home page by default, `/admin` bypasses it, a wrong code shows an
+inline error, the right code unlocks through to the normal terms screen —
+and confirmed a build with no access code set behaves exactly as before,
+unaffected.
+
+**Worth knowing:** this is a front-end gate, not a server-side one. Your
+Supabase URL and anon key are visible in the public JS bundle regardless —
+true of any Vite app, not specific to this gate — so it isn't meant to stop
+a determined, technical person from reaching the database directly. For
+keeping the link from being casually shared or stumbled into during a
+10-person test, it's exactly the right tool. If you ever need real
+server-side protection later, that's what the Vercel Pro add-on or
+Enterprise gets you.
+
+When testing wraps up, just clear `VITE_ACCESS_CODE` in Vercel and redeploy
+to open the site back up.
