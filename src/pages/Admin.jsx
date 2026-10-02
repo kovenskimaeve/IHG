@@ -15,7 +15,22 @@ async function callAdmin(password, action, payload) {
   return json
 }
 
-const TABS = ['Flagged', 'All posts', 'All files', 'Requests', 'Feedback']
+async function callBeta(password, action, payload) {
+  const res = await fetch('/api/beta-access', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action, payload: { ...payload, password } }),
+  })
+  let json
+  try {
+    json = await res.json()
+  } catch {
+    json = { ok: false, error: `Server returned ${res.status}` }
+  }
+  return json
+}
+
+const TABS = ['Flagged', 'All posts', 'All files', 'Requests', 'Feedback', 'Beta codes']
 
 export default function Admin() {
   const [password, setPassword] = useState('')
@@ -26,6 +41,9 @@ export default function Admin() {
   const [files, setFiles] = useState([])
   const [requests, setRequests] = useState([])
   const [feedback, setFeedback] = useState([])
+  const [betaCodes, setBetaCodes] = useState([])
+  const [genCount, setGenCount] = useState(10)
+  const [genLabels, setGenLabels] = useState('')
   const [loading, setLoading] = useState(false)
   const [tabError, setTabError] = useState('')
 
@@ -65,6 +83,34 @@ export default function Admin() {
     setLoading(false)
   }
 
+  async function loadBetaCodes() {
+    setLoading(true)
+    setTabError('')
+    const result = await callBeta(password, 'list', {})
+    if (result.ok) setBetaCodes(result.data || [])
+    else setTabError(result.error || 'Failed to load codes')
+    setLoading(false)
+  }
+
+  async function generateCodes() {
+    const r = await callBeta(password, 'generate', { count: genCount, labels: genLabels })
+    if (!r.ok) return setTabError(r.error || 'Failed to generate codes')
+    setGenLabels('')
+    loadBetaCodes()
+  }
+
+  async function resetCode(item) {
+    const r = await callBeta(password, 'reset', { id: item.id })
+    if (!r.ok) return setTabError(r.error || 'Failed to reset code')
+    loadBetaCodes()
+  }
+
+  async function deleteCode(item) {
+    const r = await callBeta(password, 'delete', { id: item.id })
+    if (!r.ok) return setTabError(r.error || 'Failed to delete code')
+    loadBetaCodes()
+  }
+
   useEffect(() => {
     if (!unlocked) return
     if (tab === 'Flagged') loadPosts(true)
@@ -72,6 +118,7 @@ export default function Admin() {
     if (tab === 'All files') loadFiles()
     if (tab === 'Requests') loadRequests()
     if (tab === 'Feedback') loadFeedback()
+    if (tab === 'Beta codes') loadBetaCodes()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [unlocked, tab])
 
@@ -214,6 +261,59 @@ export default function Admin() {
               <button onClick={() => deleteFeedback(f)} className="font-body text-sm text-oxblood underline shrink-0">Delete</button>
             </div>
           ))}
+        </div>
+      )}
+
+      {tab === 'Beta codes' && (
+        <div>
+          <div className="bg-parchmentDark border border-ink/20 shadow-card p-4 mb-6">
+            <p className="font-body text-sm mb-3">
+              Generate one-time invite codes. Each works on the first device
+              that enters it, then stops working anywhere else — reset a
+              code below if a tester needs to re-enter on a new device.
+            </p>
+            <div className="flex flex-wrap gap-3 mb-3">
+              <div>
+                <label className="font-body text-xs text-inkSoft block mb-1">How many</label>
+                <input
+                  type="number"
+                  min="1"
+                  max="50"
+                  value={genCount}
+                  onChange={(e) => setGenCount(e.target.value)}
+                  className="w-24 font-body text-sm border border-ink/25 bg-parchment px-3 py-2"
+                />
+              </div>
+              <div className="flex-1 min-w-[200px]">
+                <label className="font-body text-xs text-inkSoft block mb-1">Labels (optional, one per line — e.g. tester names)</label>
+                <textarea
+                  value={genLabels}
+                  onChange={(e) => setGenLabels(e.target.value)}
+                  placeholder={'Alice\nBen\nChen…'}
+                  className="w-full font-body text-sm border border-ink/25 bg-parchment px-3 py-2 h-16 resize-none"
+                />
+              </div>
+            </div>
+            <button onClick={generateCodes} className="bg-library text-parchment font-body text-sm px-4 py-2 shadow-card">
+              Generate codes
+            </button>
+          </div>
+
+          <div className="space-y-2">
+            {!loading && betaCodes.length === 0 && <p className="font-body text-inkSoft">No codes yet — generate some above.</p>}
+            {betaCodes.map((c) => (
+              <div key={c.id} className="tilt-card flex items-center justify-between bg-parchmentDark border border-ink/10 shadow-card p-3">
+                <div>
+                  <p className="font-body text-sm font-medium tracking-wide">{c.code}{c.label ? ` — ${c.label}` : ''}</p>
+                  <p className="stamp text-xs text-inkSoft">{c.used_at ? `Used ${new Date(c.used_at).toLocaleString()}` : 'Not used yet'}</p>
+                </div>
+                <div className="flex gap-4 shrink-0">
+                  {c.used_at && <button onClick={() => resetCode(c)} className="font-body text-sm text-library underline">Reset</button>}
+                  <button onClick={() => deleteCode(c)} className="font-body text-sm text-oxblood underline">Delete</button>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>

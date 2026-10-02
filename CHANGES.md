@@ -318,36 +318,52 @@ out.
 
 ---
 
-## Round 7: restrict the site to your 10 testers only
+## Round 7: restrict the site to your 10 testers, with one-time codes
 
 Checked first: Vercel's built-in password protection isn't available on the
 Hobby (free) plan for your actual production URL — it's a $150/mo add-on on
 Pro, or included on Enterprise. Their free "Vercel Authentication" option
 only protects preview/auto-generated URLs, not the plain
-`isfholygrail.vercel.app` you're sharing. So I built an app-level gate
-instead, same pattern as the admin password.
+`isfholygrail.vercel.app` you're sharing. So I built this in the app itself.
 
-New env var: **`VITE_ACCESS_CODE`**. Set it in Vercel to any code you pick
-(e.g. `whale2026`) and redeploy. Every visitor now has to enter that code
-before they see anything else — the terms gate, the whole site, none of it
-renders until they do. `/admin` bypasses this gate entirely, so you can
-always get in yourself. Leave the env var unset (or delete it) and the gate
-has zero effect — nothing changes from how the site behaves right now.
+You specifically wanted codes that can't just be reused by whoever they get
+forwarded to, so this isn't one shared password — it's individual one-time
+codes, generated and tracked from the admin panel:
 
-I tested all four states in a headless browser before shipping this: gate
-blocks the home page by default, `/admin` bypasses it, a wrong code shows an
-inline error, the right code unlocks through to the normal terms screen —
-and confirmed a build with no access code set behaves exactly as before,
-unaffected.
+- Run **`supabase/migration-5.sql`** in the Supabase SQL editor first. It
+  adds a `beta_invites` table that has **no public policies at all** — not
+  even insert — so codes can never be listed or guessed through the public
+  API. Only the server-side service-role key can touch it.
+- In `/admin`, a new **Beta codes** tab generates however many codes you
+  need (optionally labeled with tester names), each 6 characters using a
+  charset with no `0/O` or `1/I/L` so they're easy to read back over text or
+  email.
+- The whole site now sits behind a "Private testing — enter your invite
+  code" screen until a visitor enters a valid code. On success, that code is
+  marked used server-side and that browser remembers it (so they're not
+  asked again). If someone else then tries the same code, it's rejected —
+  the code only ever works for the first device that redeems it.
+- If a tester needs to switch devices, hit **Reset** next to their code in
+  the admin panel — that clears its "used" status so it'll work again once.
+- `/admin` always bypasses the gate, same as before, so you can never lock
+  yourself out.
+- New env var, off by default when unset: **`VITE_BETA_GATE_ENABLED`**. When
+  you're done with closed testing, set it to `false` in Vercel and redeploy
+  to open the site to everyone — no code changes needed, and the codes/table
+  just sit there unused afterward.
 
-**Worth knowing:** this is a front-end gate, not a server-side one. Your
-Supabase URL and anon key are visible in the public JS bundle regardless —
-true of any Vite app, not specific to this gate — so it isn't meant to stop
-a determined, technical person from reaching the database directly. For
-keeping the link from being casually shared or stumbled into during a
-10-person test, it's exactly the right tool. If you ever need real
-server-side protection later, that's what the Vercel Pro add-on or
-Enterprise gets you.
+I tested this in a headless browser before shipping it: the gate renders and
+blocks the home page by default, `/admin` bypasses it, and a rejected code
+shows the inline error correctly.
 
-When testing wraps up, just clear `VITE_ACCESS_CODE` in Vercel and redeploy
-to open the site back up.
+**Worth knowing:** the redemption check and the codes themselves live
+server-side (unlike a simple shared password baked into the front-end), so
+this is meaningfully harder to bypass than the shared-code approach I
+considered first — but it's still built for keeping a casual link-share from
+spreading during a small test, not for withstanding a determined attacker
+targeting the database directly. Your Supabase URL and anon key are still
+visible in the public JS bundle, as with any Vite app.
+
+I also removed the earlier `AccessGate` component and `VITE_ACCESS_CODE` env
+var from an earlier pass at this same problem — this one-time-code system
+replaces it entirely rather than running alongside it.
