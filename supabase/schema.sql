@@ -61,25 +61,38 @@ alter table post_votes enable row level security;
 alter table resource_requests enable row level security;
 alter table study_links enable row level security;
 
-create policy if not exists "public read files" on files for select using (true);
-create policy if not exists "public insert files" on files for insert with check (true);
+drop policy if exists "public read files" on files;
+create policy "public read files" on files for select using (true);
+drop policy if exists "public insert files" on files;
+create policy "public insert files" on files for insert with check (true);
 
-create policy if not exists "public read posts" on discussion_posts for select using (true);
-create policy if not exists "public insert posts" on discussion_posts for insert with check (true);
-create policy if not exists "public update posts" on discussion_posts for update using (true) with check (true);
+drop policy if exists "public read posts" on discussion_posts;
+create policy "public read posts" on discussion_posts for select using (true);
+drop policy if exists "public insert posts" on discussion_posts;
+create policy "public insert posts" on discussion_posts for insert with check (true);
+drop policy if exists "public update posts" on discussion_posts;
+create policy "public update posts" on discussion_posts for update using (true) with check (true);
 
-create policy if not exists "public read votes" on post_votes for select using (true);
-create policy if not exists "public insert votes" on post_votes for insert with check (true);
+drop policy if exists "public read votes" on post_votes;
+create policy "public read votes" on post_votes for select using (true);
+drop policy if exists "public insert votes" on post_votes;
+create policy "public insert votes" on post_votes for insert with check (true);
 
-create policy if not exists "public read requests" on resource_requests for select using (true);
-create policy if not exists "public insert requests" on resource_requests for insert with check (true);
-create policy if not exists "public update requests" on resource_requests for update using (true) with check (true);
+drop policy if exists "public read requests" on resource_requests;
+create policy "public read requests" on resource_requests for select using (true);
+drop policy if exists "public insert requests" on resource_requests;
+create policy "public insert requests" on resource_requests for insert with check (true);
+drop policy if exists "public update requests" on resource_requests;
+create policy "public update requests" on resource_requests for update using (true) with check (true);
 
-create policy if not exists "public read study_links" on study_links for select using (true);
-create policy if not exists "public insert study_links" on study_links for insert with check (true);
+drop policy if exists "public read study_links" on study_links;
+create policy "public read study_links" on study_links for select using (true);
+drop policy if exists "public insert study_links" on study_links;
+create policy "public insert study_links" on study_links for insert with check (true);
 
 insert into discussion_posts (channel, author_name, body)
 select 'General', 'ISF Holy Grail', 'Welcome! Ask questions, share answers with your own working, and keep it kind.'
 where not exists (select 1 from discussion_posts where channel = 'General' and author_name = 'ISF Holy Grail');
 
-alter publication supabase_realtime add table discussion_posts;
+-- Note: adding discussion_posts to the supabase_realtime publication is
+-- handled safely (idempotently) in migration-3.sql, not here.
