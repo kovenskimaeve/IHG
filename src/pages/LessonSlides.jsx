@@ -47,7 +47,11 @@ export default function LessonSlides() {
       }
     }
     load()
-    return () => { cancelled = true }
+    const sub = supabase
+      .channel(`lesson-slides-${band}-${subject}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'files', filter: `subject=eq.${subject}` }, load)
+      .subscribe()
+    return () => { cancelled = true; supabase.removeChannel(sub) }
   }, [band, subject])
 
   async function handleDownload(file) {

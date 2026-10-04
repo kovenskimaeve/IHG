@@ -31,7 +31,13 @@ export default function Browse({ category }) {
       }
     }
     load()
-    return () => { cancelled = true }
+    // Re-fetch whenever any file row changes (new upload, download count bump,
+    // admin deletion) so this list updates live, no refresh needed.
+    const sub = supabase
+      .channel(`files-${category}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'files', filter: `type=eq.${category}` }, load)
+      .subscribe()
+    return () => { cancelled = true; supabase.removeChannel(sub) }
   }, [category, grade, subject])
 
   const filtered = useMemo(() => {

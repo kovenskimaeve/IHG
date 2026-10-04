@@ -1,18 +1,26 @@
 import { useState } from 'react'
 
 const STORAGE_KEY = 'isf-holy-grail-beta-token'
+const ADMIN_SESSION_KEY = 'isf-holy-grail-admin-session'
 
 // Set VITE_BETA_GATE_ENABLED=false in Vercel (and redeploy) to turn this off
 // once you're ready for a wider release -- no code changes needed.
 const GATE_ENABLED = import.meta.env.VITE_BETA_GATE_ENABLED !== 'false'
 
 export default function BetaGate({ children }) {
-  const [token, setToken] = useState(() => localStorage.getItem(STORAGE_KEY))
+  // sessionStorage (not localStorage): access lasts for this browser session
+  // only. Close the tab/browser and the code has to be re-entered -- and
+  // since it was already marked used on first redemption, it won't work
+  // again. localStorage is still used for the admin bypass below, since an
+  // admin who's authenticated with the real admin password should stay
+  // recognized across visits, not just within one session.
+  const [token, setToken] = useState(() => sessionStorage.getItem(STORAGE_KEY))
+  const isAdmin = typeof window !== 'undefined' && localStorage.getItem(ADMIN_SESSION_KEY) === 'true'
   const [code, setCode] = useState('')
   const [error, setError] = useState('')
   const [checking, setChecking] = useState(false)
 
-  if (!GATE_ENABLED || token) return children
+  if (!GATE_ENABLED || token || isAdmin) return children
 
   async function submit() {
     if (!code.trim() || checking) return
@@ -29,7 +37,7 @@ export default function BetaGate({ children }) {
         setError(result.error || 'Something went wrong.')
         return
       }
-      localStorage.setItem(STORAGE_KEY, result.token)
+      sessionStorage.setItem(STORAGE_KEY, result.token)
       setToken(result.token)
     } catch {
       setError("Couldn't reach the server — check your connection and try again.")

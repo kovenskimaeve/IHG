@@ -30,7 +30,14 @@ export default function StudyLinks() {
     const { data } = await supabase.from('study_links').select('*').order('created_at', { ascending: false })
     setSubmitted(data || [])
   }
-  useEffect(() => { load() }, [])
+  useEffect(() => {
+    load()
+    const sub = supabase
+      .channel('study-links-all')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'study_links' }, load)
+      .subscribe()
+    return () => supabase.removeChannel(sub)
+  }, [])
 
   async function handleSubmit() {
     const domain = getDomain(url)

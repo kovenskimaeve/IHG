@@ -8,7 +8,9 @@ create table if not exists study_links (
   created_at timestamptz not null default now()
 );
 alter table study_links enable row level security;
-create policy if not exists "public read study_links" on study_links for select using (true);
-create policy if not exists "public insert study_links" on study_links for insert with check (true);
+drop policy if exists "public read study_links" on study_links;
+create policy "public read study_links" on study_links for select using (true);
+drop policy if exists "public insert study_links" on study_links;
+create policy "public insert study_links" on study_links for insert with check (true);
 
 alter table resource_requests add column if not exists downvotes integer not null default 0;

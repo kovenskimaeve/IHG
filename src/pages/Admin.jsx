@@ -127,6 +127,7 @@ export default function Admin() {
     const result = await callAdmin(password, 'ping', {})
     if (result.ok) {
       setUnlocked(true)
+      localStorage.setItem('isf-holy-grail-admin-session', 'true')
     } else {
       setError(result.error || 'Wrong password.')
     }

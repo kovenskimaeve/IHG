@@ -367,3 +367,41 @@ visible in the public JS bundle, as with any Vite app.
 I also removed the earlier `AccessGate` component and `VITE_ACCESS_CODE` env
 var from an earlier pass at this same problem — this one-time-code system
 replaces it entirely rather than running alongside it.
+
+---
+
+## Round 8: made the invite gate actually behave as "one time"
+
+Three fixes, all from testing the gate for real:
+
+1. **Codes were effectively permanent, not one-time.** The redeemed token
+   was stored in `localStorage`, which survives closing the tab or even the
+   whole browser — so a tester never got asked again after their first visit.
+   Switched to `sessionStorage` in `src/components/BetaGate.jsx`: access now
+   lasts for that one browser session and clears when the tab/browser
+   closes. Since the code was already marked used on first redemption
+   (that part was always working), closing the tab and coming back now
+   correctly asks for a code again — and the old one won't work, matching
+   what you asked for.
+2. **Admin now never needs an invite code, anywhere on the site** — not just
+   on `/admin`. Logging into `/admin` with the real admin password now sets
+   a separate `localStorage` flag that `BetaGate` also checks, so once
+   you've logged in as admin on a browser, you can browse the whole public
+   site from that browser without hitting the gate. This one deliberately
+   uses `localStorage` (persists across sessions), unlike tester access —
+   you shouldn't have to re-prove you're the admin every time, the way
+   testers have to re-enter a code.
+3. **Live updates everywhere, not just Discussions/Requests.** Past papers,
+   lesson slides, study guides (`Browse.jsx`, `LessonSlides.jsx`), study
+   links (`StudyLinks.jsx`), and the live counts on the home page now all
+   subscribe to realtime changes the same way Discussions already did — a
+   new upload or post appears for everyone looking at that page without
+   them refreshing. This needed a database change too: **run
+   `supabase/migration-6.sql`** — Realtime only streams changes for tables
+   explicitly registered for it, and `files`/`study_links` were never
+   registered, so without this migration the new subscriptions would
+   silently do nothing.
+
+I tested the sessionStorage/admin-bypass behavior directly (set the gate's
+default-blocked state, then the admin flag, confirmed each) before shipping
+this round.

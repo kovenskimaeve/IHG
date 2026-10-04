@@ -84,7 +84,12 @@ export default function Home() {
       })
     }
     loadCounts()
-    return () => { cancelled = true }
+    const sub = supabase
+      .channel('home-counts')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'files' }, loadCounts)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'discussion_posts' }, loadCounts)
+      .subscribe()
+    return () => { cancelled = true; supabase.removeChannel(sub) }
   }, [])
 
   return (
