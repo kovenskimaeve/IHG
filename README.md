@@ -1,9 +1,9 @@
 # ISF Holy Grail
 
-A community-run academic resource hub for ISF Academy students: a place to
+A individual project providing academic resource hub for ISF Academy students: a place to
 find and share past papers, lesson slides, and study guides by grade and
 subject, ask and answer questions in moderated discussions, request
-resources that are missing, and leave private feedback to admins — all
+resources that are missing, and leave private feedback to admins, all
 without accounts or logins. Currently in closed testing with a small group
 of students before a wider release.
 
@@ -11,23 +11,25 @@ of students before a wider release.
 
 ## Project summary
 
-ISF students had no single, student-run place to find past papers, lesson
-slides, and study guides, or to ask subject questions and get answers from
-people at the same grade level — material was scattered across personal
-drives, class group chats, and whatever a given teacher happened to share.
-This project investigates whether a lightweight, anonymous, grade-aware
-sharing hub — built and moderated by students, not the school — lowers that
-friction enough for students to actually use and contribute to it.
+ISF students have never had one place of their own to find past papers, lesson slides, 
+and study guides, or to ask subject questions and get answers from people in their grade.
+The material is out there, but it's scattered across personal drives, class group chats, 
+and whatever a teacher happened to share. Meanwhile, academic competition at ISF Academy 
+runs high, and so do the rates of stress-related mental health issues among students, 
+including depression, anxiety, and PTSD.
 
-The working assumptions behind the build: no login (any account system is
-friction most students won't bother with), light moderation (profanity
-filtering plus a flag/report → auto-hide-at-3 → human review pipeline,
-rather than requiring pre-approval of every post), and grade-level
-separation in Discussions specifically (a Grade 6 question and a Grade 11
-question in the same subject are rarely useful to the same reader). The site
-is being tested with a small group first, behind a one-time invite-code
-gate, specifically to validate these assumptions against real use before
-opening it up school-wide.
+This project investigates whether an anonymous, grade-aware sharing hub, built and
+moderated by students rather than the school, can lower the friction enough that students
+actually use it and contribute.
+
+The build rests on a few assumptions. There's no login, since any account system adds 
+challenges and fear most students won't bother with. Moderation is light including a
+profanity filter, plus a flag/report system that auto-hides a post at three reports and
+sends it to human review, rather than requiring pre-approval of every post. Discussions 
+are separated by grade level, since a Grade 6 question and a Grade 11 question in the same
+subject rarely serve the same reader. The site is being tested with a small group first, 
+behind a one-time invite code, to see how these assumptions hold up in practice before 
+opening it school-wide.
 
 ## File and folder structure
 
