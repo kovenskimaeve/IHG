@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Routes, Route, useLocation } from 'react-router-dom'
 import { Analytics } from '@vercel/analytics/react'
+import { SpeedInsights } from '@vercel/speed-insights/react'
 import Navbar from './components/Navbar'
 import SeaDrift from './components/SeaDrift'
 import AgreementGate from './components/AgreementGate'
@@ -77,6 +78,7 @@ export default function App() {
         </div>
       </AgreementGate>
       <Analytics />
+      <SpeedInsights />
     </Gate>
   )
 }
