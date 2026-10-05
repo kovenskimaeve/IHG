@@ -30,17 +30,19 @@ async function callBeta(password, action, payload) {
   return json
 }
 
-const TABS = ['Flagged', 'All posts', 'All files', 'Requests', 'Feedback', 'Beta codes']
+const TABS = ['Reports', 'All posts', 'All files', 'Requests', 'Feedback', 'Study links', 'Beta codes']
 
 export default function Admin() {
   const [password, setPassword] = useState('')
   const [unlocked, setUnlocked] = useState(false)
   const [error, setError] = useState('')
-  const [tab, setTab] = useState('Flagged')
+  const [tab, setTab] = useState('Reports')
   const [posts, setPosts] = useState([])
   const [files, setFiles] = useState([])
   const [requests, setRequests] = useState([])
   const [feedback, setFeedback] = useState([])
+  const [reports, setReports] = useState([])
+  const [studyLinks, setStudyLinks] = useState([])
   const [betaCodes, setBetaCodes] = useState([])
   const [genCount, setGenCount] = useState(10)
   const [genLabels, setGenLabels] = useState('')
@@ -83,6 +85,24 @@ export default function Admin() {
     setLoading(false)
   }
 
+  async function loadReports() {
+    setLoading(true)
+    setTabError('')
+    const result = await callAdmin(password, 'list_reports', {})
+    if (result.ok) setReports(result.data || [])
+    else setTabError(result.error || 'Failed to load reports')
+    setLoading(false)
+  }
+
+  async function loadStudyLinks() {
+    setLoading(true)
+    setTabError('')
+    const result = await callAdmin(password, 'list_study_links', {})
+    if (result.ok) setStudyLinks(result.data || [])
+    else setTabError(result.error || 'Failed to load study links')
+    setLoading(false)
+  }
+
   async function loadBetaCodes() {
     setLoading(true)
     setTabError('')
@@ -113,11 +133,12 @@ export default function Admin() {
 
   useEffect(() => {
     if (!unlocked) return
-    if (tab === 'Flagged') loadPosts(true)
+    if (tab === 'Reports') loadReports()
     if (tab === 'All posts') loadPosts(false)
     if (tab === 'All files') loadFiles()
     if (tab === 'Requests') loadRequests()
     if (tab === 'Feedback') loadFeedback()
+    if (tab === 'Study links') loadStudyLinks()
     if (tab === 'Beta codes') loadBetaCodes()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [unlocked, tab])
@@ -136,13 +157,49 @@ export default function Admin() {
   async function unhide(post) {
     const r = await callAdmin(password, 'unhide_post', { id: post.id })
     if (!r.ok) return setTabError(r.error || 'Failed to unhide')
-    loadPosts(tab === 'Flagged')
+    loadPosts(false)
+  }
+
+  async function hide(post) {
+    const r = await callAdmin(password, 'hide_post', { id: post.id })
+    if (!r.ok) return setTabError(r.error || 'Failed to hide')
+    loadPosts(false)
   }
 
   async function deletePost(post) {
     const r = await callAdmin(password, 'delete_post', { id: post.id })
     if (!r.ok) return setTabError(r.error || 'Failed to delete')
-    loadPosts(tab === 'Flagged')
+    loadPosts(false)
+  }
+
+  async function resolveReport(report) {
+    const r = await callAdmin(password, 'resolve_report', { id: report.id })
+    if (!r.ok) return setTabError(r.error || 'Failed to dismiss')
+    loadReports()
+  }
+
+  async function hideFromReport(report) {
+    const r = await callAdmin(password, 'hide_post', { id: report.target_id })
+    if (!r.ok) return setTabError(r.error || 'Failed to hide')
+    resolveReport(report)
+  }
+
+  async function deletePostFromReport(report) {
+    const r = await callAdmin(password, 'delete_post', { id: report.target_id })
+    if (!r.ok) return setTabError(r.error || 'Failed to delete')
+    resolveReport(report)
+  }
+
+  async function deleteLinkFromReport(report) {
+    const r = await callAdmin(password, 'delete_study_link', { id: report.target_id })
+    if (!r.ok) return setTabError(r.error || 'Failed to delete')
+    resolveReport(report)
+  }
+
+  async function deleteStudyLink(link) {
+    const r = await callAdmin(password, 'delete_study_link', { id: link.id })
+    if (!r.ok) return setTabError(r.error || 'Failed to delete')
+    loadStudyLinks()
   }
 
   async function deleteFile(file) {
@@ -202,17 +259,51 @@ export default function Admin() {
       {loading && <p className="font-body text-sm text-inkSoft mb-3">Loading…</p>}
       {tabError && <p className="font-body text-sm text-oxblood mb-3">{tabError}</p>}
 
-      {(tab === 'Flagged' || tab === 'All posts') && (
+      {tab === 'Reports' && (
+        <div className="space-y-4">
+          {!loading && reports.length === 0 && <p className="font-body text-inkSoft">No reports — nothing waiting on you.</p>}
+          {reports.map((r) => (
+            <div key={r.id} className={`tilt-card bg-parchmentDark border shadow-card p-5 ${r.resolved_at ? 'border-ink/10 opacity-60' : 'border-oxblood/40'}`}>
+              <p className="stamp text-xs mb-1 text-inkSoft">
+                {r.target_type === 'discussion_post' ? 'Discussion post' : 'Study link'} · {r.reason} · {new Date(r.created_at).toLocaleString()}
+                {r.resolved_at ? ' · resolved' : ''}
+              </p>
+              <p className="font-body text-sm mb-1 whitespace-pre-wrap">{r.content_snapshot}</p>
+              {r.detail && <p className="font-body text-xs text-inkSoft mb-3 italic">"{r.detail}"</p>}
+              {!r.resolved_at && (
+                <div className="flex flex-wrap gap-4 mt-2">
+                  <button onClick={() => resolveReport(r)} className="font-body text-sm text-library underline">Dismiss (no action needed)</button>
+                  {r.target_type === 'discussion_post' ? (
+                    <>
+                      <button onClick={() => hideFromReport(r)} className="font-body text-sm text-oxblood underline">Hide post</button>
+                      <button onClick={() => deletePostFromReport(r)} className="font-body text-sm text-oxblood underline">Delete post</button>
+                    </>
+                  ) : (
+                    <button onClick={() => deleteLinkFromReport(r)} className="font-body text-sm text-oxblood underline">Delete link</button>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {tab === 'All posts' && (
         <div className="space-y-4">
           {!loading && posts.length === 0 && <p className="font-body text-inkSoft">Nothing here.</p>}
           {posts.map((p) => (
             <div key={p.id} className="tilt-card bg-parchmentDark border border-ink/10 shadow-card p-5">
               <p className="stamp text-xs mb-1">
-                {p.channel} · {p.flag_count || 0} flag(s) · {p.hidden ? 'hidden' : 'visible'} · {p.author_name}
+                {p.channel} · {p.hidden ? 'hidden' : 'visible'} · {p.author_name}
               </p>
+              {p.topic && <p className="font-body text-sm font-medium mb-1">{p.topic}</p>}
               <p className="font-body text-sm mb-3 whitespace-pre-wrap">{p.body}</p>
               <div className="flex gap-4">
-                {p.hidden && <button onClick={() => unhide(p)} className="font-body text-sm text-library underline">Unhide / clear flags</button>}
+                {p.hidden ? (
+                  <button onClick={() => unhide(p)} className="font-body text-sm text-library underline">Unhide</button>
+                ) : (
+                  <button onClick={() => hide(p)} className="font-body text-sm text-oxblood underline">Hide</button>
+                )}
                 <button onClick={() => deletePost(p)} className="font-body text-sm text-oxblood underline">Delete</button>
               </div>
             </div>
@@ -260,6 +351,21 @@ export default function Admin() {
                 <p className="font-body text-sm whitespace-pre-wrap">{f.message}</p>
               </div>
               <button onClick={() => deleteFeedback(f)} className="font-body text-sm text-oxblood underline shrink-0">Delete</button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {tab === 'Study links' && (
+        <div className="space-y-3">
+          {!loading && studyLinks.length === 0 && <p className="font-body text-inkSoft">Nothing here.</p>}
+          {studyLinks.map((l) => (
+            <div key={l.id} className="tilt-card flex items-center justify-between bg-parchmentDark border border-ink/10 shadow-card p-4">
+              <div>
+                <p className="font-body text-sm">{l.name} — <span className="text-inkSoft">{l.url}</span></p>
+                <p className="stamp text-xs text-inkSoft">Added by {l.added_by}</p>
+              </div>
+              <button onClick={() => deleteStudyLink(l)} className="font-body text-sm text-oxblood underline shrink-0 ml-4">Delete</button>
             </div>
           ))}
         </div>

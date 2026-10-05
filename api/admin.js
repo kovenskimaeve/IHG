@@ -59,9 +59,44 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, data })
     }
 
+    if (action === 'list_reports') {
+      // Unresolved first (oldest first within that group), then resolved ones after.
+      const { data, error } = await supabaseAdmin
+        .from('reports')
+        .select('*')
+        .order('resolved_at', { ascending: true, nullsFirst: true })
+        .order('created_at', { ascending: true })
+      if (error) throw error
+      return res.status(200).json({ ok: true, data })
+    }
+
+    if (action === 'list_study_links') {
+      const { data, error } = await supabaseAdmin.from('study_links').select('*').order('created_at', { ascending: false })
+      if (error) throw error
+      return res.status(200).json({ ok: true, data })
+    }
+
     // ---- writes ----
     if (action === 'unhide_post') {
       const { error } = await supabaseAdmin.from('discussion_posts').update({ hidden: false, flag_count: 0 }).eq('id', payload.id)
+      if (error) throw error
+      return res.status(200).json({ ok: true })
+    }
+
+    if (action === 'hide_post') {
+      const { error } = await supabaseAdmin.from('discussion_posts').update({ hidden: true }).eq('id', payload.id)
+      if (error) throw error
+      return res.status(200).json({ ok: true })
+    }
+
+    if (action === 'resolve_report') {
+      const { error } = await supabaseAdmin.from('reports').update({ resolved_at: new Date().toISOString() }).eq('id', payload.id)
+      if (error) throw error
+      return res.status(200).json({ ok: true })
+    }
+
+    if (action === 'delete_study_link') {
+      const { error } = await supabaseAdmin.from('study_links').delete().eq('id', payload.id)
       if (error) throw error
       return res.status(200).json({ ok: true })
     }

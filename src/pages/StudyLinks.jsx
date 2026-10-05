@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../supabaseClient'
-import { containsProfanity } from '../lib/device'
+import { containsProfanity, getDeviceId } from '../lib/device'
+import ReportModal from '../components/ReportModal'
 
 const CURATED = [
   { name: 'Khan Academy', url: 'https://www.khanacademy.org', subject: 'All subjects' },
@@ -25,6 +26,19 @@ export default function StudyLinks() {
   const [url, setUrl] = useState('')
   const [addedBy, setAddedBy] = useState('')
   const [status, setStatus] = useState('')
+  const [reportTarget, setReportTarget] = useState(null)
+
+  async function submitReport(reason, detail) {
+    const { error: reportError } = await supabase.from('reports').insert({
+      target_type: 'study_link',
+      target_id: reportTarget.id,
+      reason,
+      detail: detail || null,
+      content_snapshot: `${reportTarget.name} — ${reportTarget.url}`,
+      device_id: getDeviceId(),
+    })
+    if (reportError) throw new Error(reportError.message)
+  }
 
   async function load() {
     const { data } = await supabase.from('study_links').select('*').order('created_at', { ascending: false })
@@ -66,19 +80,25 @@ export default function StudyLinks() {
       </p>
 
       <div className="divide-y divide-ink/15 border-t border-b border-ink/15 mb-8">
-        {[...CURATED, ...submitted.map((s) => ({ name: s.name, url: s.url, subject: `Added by ${s.added_by}` }))].map((l) => (
-          <a
-            key={l.url}
-            href={l.url}
-            target="_blank"
-            rel="noreferrer"
-            className="flex items-center justify-between py-4 hover:bg-parchmentDark px-2 transition-colors"
-          >
-            <span className="font-display text-lg">{l.name}</span>
-            <span className="stamp text-xs text-inkSoft">{l.subject}</span>
-          </a>
+        {[
+          ...CURATED.map((c) => ({ ...c, reportable: false })),
+          ...submitted.map((s) => ({ id: s.id, name: s.name, url: s.url, subject: `Added by ${s.added_by}`, reportable: true })),
+        ].map((l) => (
+          <div key={l.id || l.url} className="flex items-center justify-between py-4 hover:bg-parchmentDark px-2 transition-colors">
+            <a href={l.url} target="_blank" rel="noreferrer" className="flex-1 min-w-0">
+              <span className="font-display text-lg">{l.name}</span>
+            </a>
+            <div className="flex items-center gap-3 shrink-0">
+              <span className="stamp text-xs text-inkSoft">{l.subject}</span>
+              {l.reportable && (
+                <button onClick={() => setReportTarget(l)} className="font-body text-xs text-inkSoft underline">Report</button>
+              )}
+            </div>
+          </div>
         ))}
       </div>
+
+      {reportTarget && <ReportModal onSubmit={submitReport} onClose={() => setReportTarget(null)} />}
 
       <div className="bg-parchmentDark border border-ink/20 shadow-card p-5">
         <p className="stamp text-xs mb-3">Add a study link</p>

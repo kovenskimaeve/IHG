@@ -405,3 +405,52 @@ Three fixes, all from testing the gate for real:
 I tested the sessionStorage/admin-bypass behavior directly (set the gate's
 default-blocked state, then the admin flag, confirmed each) before shipping
 this round.
+
+---
+
+## Round 9: real threading, report-with-reason, topic titles, upload fix
+
+Four separate things:
+
+1. **Replies couldn't be replied to.** The database always supported
+   infinite nesting (`parent_id` is self-referencing), but the UI only ever
+   rendered one level and only put a Reply button on top-level posts.
+   Rewrote the rendering in `src/pages/Discussions.jsx` as a proper
+   recursive component (`PostNode`) — every post and every reply, at any
+   depth, now has its own Reply/Report/vote buttons. Visual indentation
+   caps out after 6 levels so a long thread doesn't drift off-screen, but
+   nesting itself has no limit.
+2. **No way to title what a post is actually about.** Interpreted "cannot
+   choose the subject being talked about" as: within a broad channel like
+   "Q&A · Mathematics", every post was just a wall of body text with no way
+   to tell what it's about at a glance. Added a required `topic` field
+   (short title) for new top-level posts — replies don't need one, they're
+   already under a topic. **Run `supabase/migration-7.sql`** for the new
+   `topic` column (nullable, so existing posts aren't affected).
+3. **Reports now ask why, like YouTube/Instagram, and don't auto-remove
+   anything.** Report used to silently increment a counter and auto-hide at
+   3 flags — no reason captured, no admin visibility into why. Now: Report
+   opens `src/components/ReportModal.jsx` (same component reused for Study
+   Links below), asking for a reason (Spam / Harassment / Inappropriate /
+   Wrong subject / Other) and optional detail, and inserts into a new
+   `reports` table — it no longer touches `hidden` at all. Admin's **Reports**
+   tab (replacing **Flagged**) is now the actual moderation queue: each
+   report shows the reason, detail, and a snapshot of what was reported
+   (captured at report time, so it's still visible even if later edited),
+   with Dismiss / Hide / Delete actions. **All posts** got an explicit Hide
+   button too, since hiding is now always a deliberate admin decision, never
+   automatic.
+4. **Study Links had no way to flag a bad site.** Added a Report button on
+   student-submitted links (not the curated ones, which aren't
+   database rows) using the same `ReportModal`. Admin's **Reports** tab
+   handles these too, and a new **Study links** tab lists/deletes any
+   submitted link directly.
+5. **Upload was failing: "new row violates row-level security policy."**
+   Toggling a Supabase bucket "Public" only grants public *read* access —
+   uploads go through Storage's own separate RLS on `storage.objects`, which
+   had no insert policy for the `papers` bucket at all. Fixed in
+   `supabase/migration-7.sql` alongside the two items above.
+
+**Action needed: run `supabase/migration-7.sql`** — it's the one migration
+this round, covering the storage fix, the `reports` table, and the `topic`
+column together.
