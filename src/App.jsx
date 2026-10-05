@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Routes, Route, useLocation } from 'react-router-dom'
+import { Analytics } from '@vercel/analytics/react'
 import Navbar from './components/Navbar'
 import SeaDrift from './components/SeaDrift'
 import AgreementGate from './components/AgreementGate'
@@ -75,6 +76,7 @@ export default function App() {
           {showTutorial && <Tutorial onClose={() => setShowTutorial(false)} />}
         </div>
       </AgreementGate>
+      <Analytics />
     </Gate>
   )
 }
