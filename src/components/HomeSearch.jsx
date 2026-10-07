@@ -39,11 +39,6 @@ export default function HomeSearch() {
     return () => { cancelled = true; clearTimeout(t) }
   }, [query, grade, subject, active])
 
-  async function handleDownload(file) {
-    await supabase.from('files').update({ download_count: (file.download_count || 0) + 1 }).eq('id', file.id)
-    window.open(file.file_url, '_blank')
-  }
-
   return (
     <div className="relative">
       <div className="flex items-center gap-2 bg-white/10 border border-white/20 rounded-full px-4 py-3 backdrop-blur-sm">
@@ -108,7 +103,7 @@ export default function HomeSearch() {
               </div>
               <div className="flex gap-3 shrink-0">
                 <button onClick={() => setPreview(f)} className="font-body text-xs text-white/80 underline">Preview</button>
-                <button onClick={() => handleDownload(f)} className="font-body text-xs text-white/80 underline">Download</button>
+                <a href={`/api/download?id=${f.id}`} className="font-body text-xs text-white/80 underline">Download</a>
               </div>
             </div>
           ))}
@@ -122,7 +117,8 @@ export default function HomeSearch() {
               <p className="font-display text-lg text-ink">{preview.title}</p>
               <button onClick={() => setPreview(null)} className="font-body text-sm text-ink underline">Close</button>
             </div>
-            <iframe title={preview.title} src={preview.file_url} className="w-full h-[calc(100%-2rem)] border border-ink/20 rounded-xl" />
+            <iframe title={preview.title} src={`/api/preview?id=${preview.id}`} className="w-full h-[calc(100%-4.5rem)] border border-ink/20 rounded-xl" />
+            <p className="font-body text-xs text-white/50 mt-2 px-2">Showing a preview only — download for the full document.</p>
           </div>
         </div>
       )}

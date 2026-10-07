@@ -54,11 +54,6 @@ export default function LessonSlides() {
     return () => { cancelled = true; supabase.removeChannel(sub) }
   }, [band, subject])
 
-  async function handleDownload(file) {
-    await supabase.from('files').update({ download_count: (file.download_count || 0) + 1 }).eq('id', file.id)
-    window.open(file.file_url, '_blank')
-  }
-
   function goHome() { setBand(null); setSubject(null) }
   function goBand() { setSubject(null) }
 
@@ -129,7 +124,7 @@ export default function LessonSlides() {
                 subject={f.subject}
                 meta={`Uploaded by ${f.uploader_name} · ${f.download_count || 0} downloads`}
                 onPreview={() => setPreview(f)}
-                onDownload={() => handleDownload(f)}
+                downloadHref={`/api/download?id=${f.id}`}
               />
             ))}
           </div>
@@ -143,7 +138,8 @@ export default function LessonSlides() {
               <p className="font-display text-lg">{preview.title}</p>
               <button onClick={() => setPreview(null)} className="font-body text-sm underline">Close</button>
             </div>
-            <iframe title={preview.title} src={preview.file_url} className="w-full h-[calc(100%-2rem)] border border-ink/20" />
+            <iframe title={preview.title} src={`/api/preview?id=${preview.id}`} className="w-full h-[calc(100%-4.5rem)] border border-ink/20" />
+            <p className="font-body text-xs text-inkSoft mt-2 px-2">Showing a preview only — download for the full document.</p>
           </div>
         </div>
       )}

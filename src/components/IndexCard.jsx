@@ -1,4 +1,4 @@
-export default function IndexCard({ title, grade, subject, meta, onPreview, onDownload }) {
+export default function IndexCard({ title, grade, subject, meta, onPreview, downloadHref }) {
   return (
     <div className="tilt-card relative bg-parchmentDark border border-ink/10 shadow-card p-5">
       <div className="flex items-start justify-between gap-3 mb-2">
@@ -11,9 +11,9 @@ export default function IndexCard({ title, grade, subject, meta, onPreview, onDo
         <button onClick={onPreview} className="font-body text-sm text-library underline">
           Preview
         </button>
-        <button onClick={onDownload} className="font-body text-sm text-library underline">
+        <a href={downloadHref} className="font-body text-sm text-library underline">
           Download
-        </button>
+        </a>
       </div>
     </div>
   )

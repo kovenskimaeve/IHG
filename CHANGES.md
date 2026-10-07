@@ -193,6 +193,51 @@ harder separation.
 
 ---
 
+## Round 4: download/preview proxy + Past Papers redesign
+
+No new migration this round. New dependency: **`pdf-lib`** (already added to
+`package.json` — `npm install` after pulling).
+
+**1. Downloads no longer expose the Supabase URL, and now register as real
+downloads.** New `api/download.js`: looks the file up server-side (service
+role, bypasses RLS), streams the bytes back with
+`Content-Disposition: attachment` and a clean filename built from the
+title. The download_count bump moved here too (was previously an anon
+client-side update that depended on a public UPDATE policy on `files` that,
+checking the schema, doesn't actually exist — so it was likely silently
+failing before). `Browse.jsx`, `LessonSlides.jsx`, `HomeSearch.jsx`, and
+`IndexCard.jsx` now link to `/api/download?id=<file id>` instead of calling
+`window.open()` on the raw file URL. Note: the `papers` storage bucket is
+still public (confirmed in `supabase/migration-7.sql`), so this hides the
+backend URL from the UI, but it isn't hard access control — someone with the
+raw URL directly could still fetch it. If you want real access control later
+(e.g. only signed-in students), that's a bigger change (private bucket +
+signed URLs) — happy to do that if you want it.
+
+**2. Preview is now actually capped**, not just visually framed. New
+`api/preview.js`: downloads the source PDF server-side, uses `pdf-lib` to
+cut it down to **min(2 pages, 20% of the document), at least 1 page**, and
+serves that trimmed copy for the iframe. Previously the iframe pointed
+straight at the full file, so "preview" was really just an in-page way to
+read the whole thing.
+
+**3. Past Papers now has its own look** — a warm pastel "bento box" theme
+(`src/pages/PastPapers.jsx`, wired up in `App.jsx` in place of the shared
+`Browse` component), distinct from the ocean home page and the
+parchment/library look everywhere else: rounded compartment cards in four
+pastel fills, a wood-toned filter tray, dashed "compartment divider" lines,
+and pill-shaped Preview/Download buttons. Lesson Slides and Study Guides
+keep the existing library look for now — you only asked for Past Papers
+first; say the word whenever you want the other two restyled similarly, I
+scoped the bento palette additions in `tailwind.config.js` so it's ready to
+extend.
+
+Also cleaned up two things that had crept back into the repo: the stray
+`supabase/src` duplicate-app folder, and two zip files that had ended up
+committed at the repo root.
+
+---
+
 ## Round 4: fixed the broken archive section + a real crash bug
 
 You sent screenshots of the archive cards looking broken — jagged dark shape
