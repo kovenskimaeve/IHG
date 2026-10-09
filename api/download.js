@@ -52,6 +52,9 @@ export default async function handler(req, res) {
     // Awaited so it actually completes before this function's response ends
     // and the serverless runtime potentially freezes it.
     await supabaseAdmin.from('files').update({ download_count: (file.download_count || 0) + 1 }).eq('id', id)
+    // One row per download, so the hub can rank "trending this week". Best-effort:
+    // if migration-8 hasn't been run yet this just errors quietly and the download proceeds.
+    await supabaseAdmin.from('download_events').insert({ file_id: id })
 
     res.setHeader('Content-Type', 'application/pdf')
     res.setHeader('Content-Disposition', `attachment; filename="${safeFilename(file.title)}"`)

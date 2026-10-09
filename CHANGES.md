@@ -499,3 +499,19 @@ Four separate things:
 **Action needed: run `supabase/migration-7.sql`** — it's the one migration
 this round, covering the storage fix, the `reports` table, and the `topic`
 column together.
+
+---
+
+## Round 5: Past Papers hub (Screen 1 of 3)
+
+Run **`supabase/migration-8.sql`** in the Supabase SQL editor (adds `download_events`
+so "Trending this week" is a real 7-day ranking). `api/download.js` now logs one row
+per download. Until the migration is run, trending just shows empty dashed rows.
+
+- New `src/pages/PastPapersHub.jsx` at `/past-papers`: upload center (page-wide drop
+  zone), grade ladder (Grade 6-10, widths proportional to paper count), trending,
+  roll a paper, quiet stats, needs a paper, subject cloud, and an "Open the box"
+  action that appears once a grade and subject are both picked.
+- The previous grid is now at `/past-papers/browse` and reads `?grade=&subject=`.
+  It is a stand-in until Screen 2 (dense self-packing grid) replaces it.
+- MYP scope: Grade 11 (DP) is not shown on this hub.

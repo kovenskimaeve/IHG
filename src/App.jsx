@@ -10,6 +10,7 @@ import ErrorBoundary from './components/ErrorBoundary'
 import MaintenanceScreen from './components/MaintenanceScreen'
 import BetaGate from './components/BetaGate'
 import Home from './pages/Home'
+import PastPapersHub from './pages/PastPapersHub'
 import PastPapers from './pages/PastPapers'
 import Browse from './pages/Browse'
 import LessonSlides from './pages/LessonSlides'
@@ -62,7 +63,8 @@ export default function App() {
             <div key={location.pathname} className="page-enter">
               <Routes location={location}>
                 <Route path="/" element={<Home />} />
-                <Route path="/past-papers" element={<PastPapers />} />
+                <Route path="/past-papers" element={<PastPapersHub />} />
+                <Route path="/past-papers/browse" element={<PastPapers />} />
                 <Route path="/lesson-slides" element={<LessonSlides />} />
                 <Route path="/study-guides" element={<Browse category="study_guide" />} />
                 <Route path="/discussions" element={<Discussions />} />

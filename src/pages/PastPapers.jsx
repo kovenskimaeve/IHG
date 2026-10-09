@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import { GRADES, SUBJECTS } from '../lib/device'
 
@@ -46,8 +47,10 @@ function BentoFileCard({ file, index, onPreview }) {
 }
 
 export default function PastPapers() {
-  const [grade, setGrade] = useState('')
-  const [subject, setSubject] = useState('')
+  // The Past Papers hub links here with ?grade=...&subject=... pre-chosen.
+  const [params] = useSearchParams()
+  const [grade, setGrade] = useState(params.get('grade') || '')
+  const [subject, setSubject] = useState(params.get('subject') || '')
   const [query, setQuery] = useState('')
   const [files, setFiles] = useState([])
   const [loading, setLoading] = useState(true)
