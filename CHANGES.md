@@ -515,3 +515,18 @@ per download. Until the migration is run, trending just shows empty dashed rows.
 - The previous grid is now at `/past-papers/browse` and reads `?grade=&subject=`.
   It is a stand-in until Screen 2 (dense self-packing grid) replaces it.
 - MYP scope: Grade 11 (DP) is not shown on this hub.
+
+### Round 5b: hub redesigned as a real bento box
+
+- `/past-papers` now opens on the **cover of a closed bento box** (lacquer lid, sakura, seigaiha
+  waves, sleepy face, lift tab) with a clear "Open the box" button. Opening lifts the lid off.
+  "Close the lid" brings it back. Dropping a PDF on the lid also opens it.
+- Inside, every tile is a drawn food with the writing on the food: grade ladder = onigiri
+  (grade numeral on the rice, count on the nori; widths proportional to paper count), upload =
+  tamagoyaki, trending = three nigiri (rank on the rice, title on the salmon), roll a paper =
+  takoyaki, stats = cherry tomatoes (labels fade in on hover only), missing papers = dashed
+  empty compartments.
+- Subject is now a dropdown including the Grade 9 courses (and per-grade subject lists).
+  The browse page's subject filter includes courses too.
+- Fits one screen on desktop (no scrolling). Under 900px wide it stacks and scrolls.
+- The upload form is now a sheet that opens from the egg, so the tile stays clean.

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import { GRADES, SUBJECTS } from '../lib/device'
+import { GRADE9_COURSES } from '../lib/lessonFolders'
 
 // Four pastel "compartments", cycled by index so neighboring cards never
 // repeat the same fill — like the actual sectioned trays a bento box has.
@@ -107,7 +108,12 @@ export default function PastPapers() {
             className="font-body text-sm rounded-full border border-bentoWood/30 bg-bentoCream text-bentoInk px-3 py-2"
           >
             <option value="">All subjects</option>
-            {SUBJECTS.map((s) => <option key={s} value={s}>{s}</option>)}
+            <optgroup label="Subjects">
+              {SUBJECTS.map((s) => <option key={s} value={s}>{s}</option>)}
+            </optgroup>
+            <optgroup label="Grade 9 courses">
+              {GRADE9_COURSES.map((c) => <option key={c} value={c}>{c}</option>)}
+            </optgroup>
           </select>
           <input
             value={query}
