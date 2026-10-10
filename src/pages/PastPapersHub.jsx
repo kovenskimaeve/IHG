@@ -17,8 +17,8 @@ const SERIF = 'Fraunces, serif'
 
 const CSS = `
 .hub-stage{position:relative;height:calc(100dvh - 74px);min-height:600px;overflow:hidden}
-.hub-grid{display:grid;gap:10px;height:100%;grid-template-columns:repeat(6,minmax(0,1fr));grid-template-rows:1.15fr 1fr .85fr;
-  grid-template-areas:"ladder ladder ladder egg egg egg" "ladder ladder ladder trend trend trend" "needs needs roll stats pick pick"}
+.hub-grid{display:grid;gap:10px;height:100%;grid-template-columns:repeat(8,minmax(0,1fr));grid-template-rows:1.5fr 2fr 1.1fr;
+  grid-template-areas:"ladder ladder ladder ladder ladder ladder ladder ladder" "egg egg egg egg trend trend trend trend" "needs needs needs roll stats stats pick pick"}
 .a-ladder{grid-area:ladder}.a-egg{grid-area:egg}.a-trend{grid-area:trend}
 .a-needs{grid-area:needs}.a-roll{grid-area:roll}.a-stats{grid-area:stats}.a-pick{grid-area:pick}
 @media (max-width:899px){
@@ -26,10 +26,10 @@ const CSS = `
   .hub-grid{display:flex;flex-direction:column;height:auto}
   .hub-cell{min-height:150px}
 }
-.hub-cell{position:relative;min-width:0;min-height:0;border-radius:22px;background:#FFF8EC;padding:12px;
+.hub-cell{position:relative;overflow:hidden;min-width:0;min-height:0;border-radius:22px;background:#FFF8EC;padding:10px;
   transition:filter .25s ease,opacity .25s ease,transform .25s ease,background-color .25s ease}
 .hub-dim{filter:blur(6px);opacity:.45;pointer-events:none}
-.hub-egg-live{transform:scale(1.04);background:#F6DDA6 !important;z-index:5}
+.hub-egg-live{transform:scale(1.04);background:#FFE9A3 !important;z-index:5}
 .hub-lid{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;z-index:10;
   transition:transform .8s cubic-bezier(.6,.05,.3,1),opacity .6s ease}
 .hub-lid.up{transform:translateY(-115%) rotate(-5deg);opacity:0;pointer-events:none}
@@ -135,44 +135,58 @@ function ChopsticksIcon({ className = '' }) {
   )
 }
 
-function Onigiri({ n, num, selected, loading }) {
-  const id = useId()
+function Face({ x, y, s = 1 }) {
   return (
-    <svg viewBox="0 0 100 100" className="hub-food" preserveAspectRatio="xMidYMax meet" aria-hidden="true">
-      <defs>
-        <clipPath id={id}>
-          <path d="M50 8 C58 8 64 12 70 22 L90 70 C95 82 88 92 76 92 L24 92 C12 92 5 82 10 70 L30 22 C36 12 42 8 50 8 Z" />
-        </clipPath>
-      </defs>
+    <g transform={`translate(${x} ${y}) scale(${s})`}>
+      <circle cx="-12" cy="0" r="3.2" fill={INK} />
+      <circle cx="12" cy="0" r="3.2" fill={INK} />
+      <ellipse cx="-20" cy="8" rx="6" ry="3.6" fill="#F2B6B0" />
+      <ellipse cx="20" cy="8" rx="6" ry="3.6" fill="#F2B6B0" />
+      <path d="M-5 6 q5 6 10 0" fill="none" stroke={INK} strokeWidth="2.2" strokeLinecap="round" />
+    </g>
+  )
+}
+
+function Onigiri({ n, num, selected, loading }) {
+  const fs = String(n).length > 2 ? 8 : 11
+  return (
+    <svg viewBox="0 0 140 108" className="hub-food" preserveAspectRatio="xMidYMax meet" aria-hidden="true">
+      <g transform="translate(10 0) scale(1)">
       <path
-        d="M50 8 C58 8 64 12 70 22 L90 70 C95 82 88 92 76 92 L24 92 C12 92 5 82 10 70 L30 22 C36 12 42 8 50 8 Z"
+        d="M60 6 C68 6 74 10 80 20 L108 78 C114 92 106 102 92 102 L28 102 C14 102 6 92 12 78 L40 20 C46 10 52 6 60 6 Z"
         fill={selected ? '#FFEFCF' : RICE}
         stroke={selected ? INK : RICE_EDGE}
-        strokeWidth="3"
+        strokeWidth={selected ? 4.5 : 3.5}
       />
-      <g clipPath={`url(#${id})`}>
-        <rect x="0" y="66" width="100" height="30" fill="#3F4B43" />
+      <Face x={60} y={52} s={0.95} />
+      <rect x="38" y="68" width="44" height="32" rx="5" fill="#3F4B43" />
+      <text x="60" y="93" textAnchor="middle" fontFamily={SERIF} fontSize="26" fill="#F6EBDD">{num}</text>
+      <circle cx="60" cy="27" r="10" fill="#D98A8A" stroke="#B96A6A" strokeWidth="1.5" />
+      <text x="60" y="30.5" textAnchor="middle" fontFamily={MONO} fontSize={fs} fill="#FFF8EC">{loading ? '–' : n}</text>
       </g>
-      <text x="50" y="54" textAnchor="middle" fontFamily={SERIF} fontSize="30" fill={INK}>{num}</text>
-      <text x="50" y="84" textAnchor="middle" fontFamily={MONO} fontSize="12" fill="#F6EBDD">{loading ? '–' : n}</text>
-      {selected && <circle cx="50" cy="26" r="5" fill="#D98A8A" stroke="#B96A6A" strokeWidth="1.5" />}
     </svg>
   )
 }
 
-function Tamagoyaki({ live }) {
+function EggBackdrop() {
+  // layered omelet, drawn edge to edge so the whole compartment is the food
   return (
-    <svg viewBox="0 0 240 130" className="hub-food" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
-      {[12, 86, 160].map((x, i) => (
-        <g key={x}>
-          <rect x={x} y="22" width="70" height="86" rx="18" fill="#F4D98A" stroke="#D9A441" strokeWidth="3" />
-          <path d={`M${x + 12} 40 q22 14 0 30 q-6 8 4 18`} fill="none" stroke="#E7BC5F" strokeWidth="3" strokeLinecap="round" />
-          {i === 1 && <circle cx={x + 52} cy="34" r="3" fill="#E7BC5F" />}
-        </g>
+    <svg className="absolute inset-0 w-full h-full" viewBox="0 0 300 200" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+      <rect width="300" height="200" fill="#F4D98A" />
+      {[28, 68, 108, 148, 188].map((y, i) => (
+        <path key={y} d={`M-10 ${y} q40 ${i % 2 ? -14 : 14} 80 0 t80 0 t80 0 t80 0`} fill="none" stroke="#E7BC5F" strokeWidth="5" strokeLinecap="round" opacity="0.85" />
       ))}
-      <path d="M200 20 q18 -16 30 2 q-14 12 -30 -2 Z" fill="#8FB58A" stroke="#6F9A6A" strokeWidth="2" />
-      <text x="120" y="68" textAnchor="middle" fontFamily={SERIF} fontSize="26" fill="#6B4A1E">{live ? 'Let go!' : 'Add a paper'}</text>
-      <text x="120" y="90" textAnchor="middle" fontFamily={MONO} fontSize="10.5" fill="#8A6A2E">drop a PDF anywhere</text>
+      {[[40, 52], [250, 90], [70, 170], [230, 176], [150, 14]].map(([cx, cy], i) => <circle key={i} cx={cx} cy={cy} r="3.5" fill="#D9A441" opacity="0.55" />)}
+    </svg>
+  )
+}
+
+function EggLabel({ live }) {
+  return (
+    <svg viewBox="0 0 300 170" className="hub-food" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+      <Face x={150} y={34} s={1.6} />
+      <text x="150" y="108" textAnchor="middle" fontFamily={SERIF} fontSize="42" fill="#5E3F14">{live ? 'Let go!' : 'Add a paper'}</text>
+      <text x="150" y="140" textAnchor="middle" fontFamily={MONO} fontSize="14" fill="#6E5018">drop a PDF anywhere</text>
     </svg>
   )
 }
@@ -193,23 +207,26 @@ function Nigiri({ rank, title, meta, empty }) {
 function Takoyaki({ line1, line2 }) {
   return (
     <svg viewBox="0 0 130 130" className="hub-food hub-roll" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
-      <circle cx="65" cy="68" r="52" fill="#DDA66B" stroke="#B97B3F" strokeWidth="3" />
-      <path d="M26 56 q39 -24 78 0 M20 74 q45 -22 90 0 M30 92 q35 -14 70 0" fill="none" stroke="#7A4A2A" strokeWidth="6" strokeLinecap="round" opacity="0.75" />
-      <path d="M34 50 q31 -16 62 0 M28 70 q37 -14 74 0" fill="none" stroke="#FFF3D6" strokeWidth="2.5" strokeLinecap="round" />
-      <path d="M52 14 q-6 -8 2 -12 M66 12 q-4 -9 4 -12 M80 14 q-2 -8 6 -10" fill="none" stroke="#E8B88A" strokeWidth="2.5" strokeLinecap="round" />
-      <text x="65" y="70" textAnchor="middle" fontFamily={SERIF} fontSize="21" fill="#FFF8EC" stroke="#6B4226" strokeWidth="2.2" paintOrder="stroke">{line1}</text>
-      <text x="65" y="92" textAnchor="middle" fontFamily={SERIF} fontSize="17" fill="#FFF8EC" stroke="#6B4226" strokeWidth="2" paintOrder="stroke">{line2}</text>
+      <circle cx="65" cy="66" r="60" fill="#DDA66B" stroke="#B97B3F" strokeWidth="3" />
+      <path d="M20 44 q45 -28 90 0 M14 62 q51 -24 102 0" fill="none" stroke="#7A4A2A" strokeWidth="6" strokeLinecap="round" opacity="0.7" />
+      <path d="M26 38 q39 -18 78 0" fill="none" stroke="#FFF3D6" strokeWidth="2.5" strokeLinecap="round" />
+      {[[34, 100], [96, 98], [52, 112], [80, 114]].map(([x, y], i) => <circle key={i} cx={x} cy={y} r="2.4" fill="#6F9A6A" />)}
+      <Face x={65} y={52} s={0.8} />
+      <text x="65" y="84" textAnchor="middle" fontFamily={SERIF} fontSize="21" fill="#4A2A14">{line1}</text>
+      <text x="65" y="104" textAnchor="middle" fontFamily={SERIF} fontSize="16" fill="#4A2A14">{line2}</text>
     </svg>
   )
 }
 
 function Tomato({ value }) {
-  const fs = String(value).length > 3 ? 15 : 22
+  const fs = String(value).length > 4 ? 11 : String(value).length > 2 ? 14 : 18
   return (
     <svg viewBox="0 0 70 70" className="hub-food" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
-      <circle cx="35" cy="38" r="29" fill="#EE9F8D" stroke="#CC7461" strokeWidth="3" />
-      <path d="M35 14 l5 8 l9 -3 l-4 9 l-10 -2 l-10 2 l-4 -9 l9 3 Z" fill="#8FB58A" stroke="#6F9A6A" strokeWidth="1.5" strokeLinejoin="round" />
-      <text x="35" y="46" textAnchor="middle" fontFamily={MONO} fontSize={fs} fill="#5B2E22">{value}</text>
+      <circle cx="35" cy="38" r="31" fill="#EE9F8D" stroke="#CC7461" strokeWidth="3" />
+      <path d="M35 10 l5 8 l9 -3 l-4 9 l-10 -2 l-10 2 l-4 -9 l9 3 Z" fill="#8FB58A" stroke="#6F9A6A" strokeWidth="1.5" strokeLinejoin="round" />
+      <circle cx="26" cy="32" r="2" fill={INK} /><circle cx="44" cy="32" r="2" fill={INK} />
+      <ellipse cx="20" cy="38" rx="4" ry="2.4" fill="#F7C4BA" /><ellipse cx="50" cy="38" rx="4" ry="2.4" fill="#F7C4BA" />
+      <text x="35" y="58" textAnchor="middle" fontFamily={MONO} fontSize={fs} fill="#5B2E22">{value}</text>
     </svg>
   )
 }
@@ -438,7 +455,7 @@ export default function PastPapersHub() {
 
   const dim = dragActive ? 'hub-dim' : ''
   const totalMyp = mypPapers.length
-  const ladderFloor = Math.max(1, totalMyp * 0.12)
+  const ladderFloor = Math.max(1, totalMyp * 0.7)
   const ready = selGrade && selSubject
   const short = (t, n) => (t.length > n ? `${t.slice(0, n - 1)}…` : t)
 
@@ -476,9 +493,9 @@ export default function PastPapersHub() {
 
           <div className="flex-1 min-h-0 rounded-[28px] p-2.5" style={{ background: '#D9B38C', border: '3px solid #B88B63' }}>
             <div className="hub-grid">
-              {/* rice: grade ladder */}
-              <section className={`hub-cell a-ladder flex flex-col ${dim}`} style={{ background: '#FFFBF3' }} aria-label="Papers by grade">
-                <p className="font-body text-xs text-bentoInkSoft mb-1">Pick a rice ball for your grade</p>
+              {/* bamboo mat of rice balls: grade ladder */}
+              <section className={`hub-cell a-ladder flex flex-col ${dim}`} style={{ background: '#DCE5C0' }} aria-label="Papers by grade">
+                <span className="self-start rounded-full px-3 py-0.5 text-xs font-body mb-1" style={{ background: '#3F4B43', color: '#F6EBDD' }}>Pick your grade</span>
                 <div className="flex gap-2 flex-1 min-h-0 items-end">
                   {MYP_GRADES.map((g) => (
                     <button
@@ -495,20 +512,17 @@ export default function PastPapersHub() {
                 </div>
               </section>
 
-              {/* tamagoyaki: upload */}
-              <section
-                className={`hub-cell a-egg p-0 ${dragActive ? 'hub-egg-live' : ''}`}
-                style={{ border: '2px dashed #D9A441' }}
-                aria-label="Upload a past paper"
-              >
-                <button onClick={() => { setFormOpen(true); setStatus('') }} className="w-full h-full p-2 block" aria-label="Add a paper">
-                  <Tamagoyaki live={dragActive} />
+              {/* tamagoyaki: upload (the whole compartment is the omelet) */}
+              <section className={`hub-cell a-egg p-0 ${dragActive ? 'hub-egg-live' : ''}`} style={{ background: '#F4D98A' }} aria-label="Upload a past paper">
+                <EggBackdrop />
+                <button onClick={() => { setFormOpen(true); setStatus('') }} className="relative w-full h-full p-3 block" aria-label="Add a paper">
+                  <EggLabel live={dragActive} />
                 </button>
               </section>
 
-              {/* nigiri: trending */}
-              <section className={`hub-cell a-trend flex flex-col ${dim}`} aria-label="Trending this week">
-                <p className="font-display text-base text-bentoInk leading-none mb-1">Trending this week</p>
+              {/* sushi on shiso leaf: trending */}
+              <section className={`hub-cell a-trend flex flex-col ${dim}`} style={{ background: '#CFE3B9' }} aria-label="Trending this week">
+                <span className="self-start rounded-full px-3 py-0.5 text-xs font-body mb-1" style={{ background: '#3F4B43', color: '#F6EBDD' }}>Trending this week</span>
                 <div className="flex flex-col flex-1 min-h-0 justify-around">
                   {[0, 1, 2].map((i) => {
                     const f = trending[i]
@@ -524,25 +538,26 @@ export default function PastPapersHub() {
               </section>
 
               {/* empty compartments: needs a paper */}
-              <section className={`hub-cell a-needs flex flex-col ${dim}`} style={{ border: '2px dashed #C9A27E', background: 'transparent' }} aria-label="Papers still missing">
-                <p className="font-display text-base text-bentoInk leading-none mb-2">Still empty</p>
+              <section className={`hub-cell a-needs flex flex-col ${dim}`} style={{ border: '2px dashed #A9805A', background: 'transparent' }} aria-label="Papers still missing">
+                <p className="font-display text-base leading-none mb-2" style={{ color: INK }}>Still empty</p>
                 <div className="flex flex-wrap gap-1.5 content-start overflow-hidden">
-                  {gaps.length === 0 && !loading && <p className="font-body text-xs text-bentoInkSoft">Every box is full.</p>}
+                  {gaps.length === 0 && !loading && <p className="font-body text-xs" style={{ color: INK }}>Every box is full.</p>}
                   {gaps.map(({ g, s }) => (
                     <button
                       key={`${g}-${s}`}
                       onClick={() => prefillUpload(g, s)}
-                      className="rounded-lg border-2 border-dashed border-bentoWood/45 px-2 py-1 text-left hover:border-bentoStamp transition-colors"
+                      className="rounded-lg border-2 border-dashed px-2 py-1 text-left hover:border-bentoStamp transition-colors"
+                      style={{ borderColor: '#A9805A' }}
                     >
-                      <span className="block font-body text-[11px] leading-tight text-bentoInk">{short(s, 24)}</span>
-                      <span className="block text-[10px] text-bentoInkSoft" style={{ fontFamily: MONO }}>{g}</span>
+                      <span className="block font-body text-[11px] leading-tight" style={{ color: INK }}>{short(s, 24)}</span>
+                      <span className="block text-[10px]" style={{ fontFamily: MONO, color: INK }}>{g}</span>
                     </button>
                   ))}
                 </div>
               </section>
 
               {/* takoyaki: roll a paper */}
-              <section className={`hub-cell a-roll hub-flip p-0 ${dim}`} aria-label="Roll a paper">
+              <section className={`hub-cell a-roll hub-flip p-0 ${dim}`} style={{ background: '#F0D2A0' }} aria-label="Roll a paper">
                 <div className={`hub-flip-inner ${flipped ? 'flipped' : ''}`}>
                   <div className="hub-face p-1.5">
                     <button onClick={roll} disabled={papers.length === 0} className="w-full h-full disabled:opacity-50" aria-label="Roll a paper">
@@ -566,23 +581,24 @@ export default function PastPapersHub() {
                 </div>
               </section>
 
-              {/* cherry tomatoes: quiet stats, no labels at rest */}
+              {/* cherry tomatoes on lettuce: quiet stats, no labels at rest */}
               <section
                 className={`hub-cell a-stats hub-stat flex flex-col justify-center ${dim}`}
+                style={{ background: '#BBD6A5' }}
                 aria-label={`${totalMyp} papers, ${totalDownloads} downloads, ${subjectsCovered} subjects covered`}
               >
                 <div className="flex gap-1 items-center min-h-0" style={{ flex: '1 1 0' }}>
                   {[totalMyp, totalDownloads, subjectsCovered].map((v, i) => (
-                    <div key={i} className="flex-1 min-w-0 h-full max-h-[78px]"><Tomato value={loading ? '–' : v} /></div>
+                    <div key={i} className="flex-1 min-w-0 h-full max-h-[84px]"><Tomato value={loading ? '–' : v} /></div>
                   ))}
                 </div>
-                <div className="hub-stat-label flex gap-1 text-[10px] text-bentoInkSoft text-center" aria-hidden="true" style={{ fontFamily: MONO }}>
+                <div className="hub-stat-label flex gap-1 text-[10px] text-center" aria-hidden="true" style={{ fontFamily: MONO, color: '#3F4B43' }}>
                   <span className="flex-1">papers</span><span className="flex-1">downloads</span><span className="flex-1">subjects</span>
                 </div>
               </section>
 
               {/* pick a subject + go */}
-              <section className={`hub-cell a-pick flex flex-col justify-between gap-2 ${dim}`} aria-label="Choose what to open">
+              <section className={`hub-cell a-pick flex flex-col justify-between gap-2 ${dim}`} style={{ background: '#F7D5CF' }} aria-label="Choose what to open">
                 <label className="block">
                   <span className="font-display text-base text-bentoInk leading-none block mb-1.5">
                     {selGrade ? `${selGrade}: pick a subject` : 'Pick a subject'}

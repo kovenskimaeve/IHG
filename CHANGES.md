@@ -530,3 +530,12 @@ per download. Until the migration is run, trending just shows empty dashed rows.
   The browse page's subject filter includes courses too.
 - Fits one screen on desktop (no scrolling). Under 900px wide it stacks and scrolls.
 - The upload form is now a sheet that opens from the egg, so the tile stays clean.
+
+### Round 5c: packed, food-first layout
+
+- Every compartment is now the food itself (omelet, bamboo mat, shiso leaf, lettuce, takoyaki
+  batter), filled edge to edge, with the writing on the food. Original kawaii-style SVG foods
+  with faces and blush cheeks; no third-party artwork is used.
+- Onigiri: grade numeral on the nori, paper count on the pickled plum. Tamagoyaki: whole upload
+  tile is the omelet. Section labels sit on nori strips.
+- 8-column grid: rice balls strip on top, omelet + sushi plate in the middle, small foods below.
