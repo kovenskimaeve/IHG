@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../supabaseClient'
 import { GRADE_BANDS, SUBJECTS_BY_BAND, GRADE9_COURSES } from '../lib/lessonFolders'
 import IndexCard from '../components/IndexCard'
+import { groupFiles } from '../lib/batches'
 
 function FolderTile({ title, subtitle, onClick }) {
   return (
@@ -116,15 +117,15 @@ export default function LessonSlides() {
           <p className="font-body text-inkSoft">Nothing here yet — be the first to upload one.</p>
         ) : (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {files.map((f) => (
+            {groupFiles(files).map((g) => (
               <IndexCard
-                key={f.id}
-                title={f.title}
-                grade={f.grade}
-                subject={f.subject}
-                meta={`Uploaded by ${f.uploader_name} · ${f.download_count || 0} downloads`}
-                onPreview={() => setPreview(f)}
-                downloadHref={`/api/download?id=${f.id}`}
+                key={g.key}
+                title={g.title}
+                grade={g.grade}
+                subject={g.subject}
+                meta={`Uploaded by ${g.uploader_name} · ${g.download_count} downloads`}
+                files={g.files}
+                onPreview={(id) => setPreview({ id, title: g.title })}
               />
             ))}
           </div>

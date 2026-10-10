@@ -539,3 +539,73 @@ per download. Until the migration is run, trending just shows empty dashed rows.
 - Onigiri: grade numeral on the nori, paper count on the pickled plum. Tamagoyaki: whole upload
   tile is the omelet. Section labels sit on nori strips.
 - 8-column grid: rice balls strip on top, omelet + sushi plate in the middle, small foods below.
+
+---
+
+## Round 6: security hardening, archive, batch uploads, reply fix
+
+### DEPLOY IN THIS ORDER (the order matters)
+
+1. **Vercel -> Settings -> Environment Variables:** add `SUPABASE_JWT_SECRET`
+   (Supabase -> Project Settings -> API -> JWT secret). Optionally add `RATE_LIMIT_SALT`
+   (any random string). **Do this before step 3**, otherwise the access-code screen
+   can't issue sessions and nobody can get into the site.
+2. **Supabase SQL editor:** run `supabase/migration-9.sql`. Purely additive, nothing closes.
+3. **Push this code** and let Vercel deploy. Everything still works as before.
+4. **Test the gate** in a private window: enter an invite code, browse, upload, post, download.
+   (Codes already redeemed before this update are treated as "claim once more": a tester
+   re-enters their own code once and it then binds to their browser.)
+5. **Only then** run `supabase/migration-10.sql` (the lockdown). From this moment the public
+   Supabase key alone can do nothing. If anything misbehaves, run
+   `supabase/emergency-reopen.sql` and tell me what you saw.
+6. Supabase -> Authentication -> turn **off** "Allow new users to sign up" (not needed by the
+   site; defense in depth). Change `ADMIN_PASSWORD` to a long passphrase (16+ chars), since
+   the old one could be guessed at without limit until this update.
+
+### What was actually wrong (and is now fixed)
+
+- **The access gate was only cosmetic.** `BetaGate` let anyone in if a localStorage value was
+  set (anyone can set it from the console), and the database was open to anyone holding the
+  public key in the JavaScript. Now the server issues a signed session after a valid code;
+  Supabase row-level security, `/api/download` and `/api/preview` all require it.
+- **Anyone could edit anyone's posts** (public UPDATE policies). Removed. Votes now go through
+  database functions (one per device); everything else needs `/api/admin`.
+- **Stored XSS in Study links** (`javascript://example.com/%0aalert(1)` passed the domain check).
+  Now http(s) only: checked on submit, on render, and by a database constraint.
+- **No brute-force protection** on the admin password or invite codes, and codes came from
+  `Math.random`. Now: 5 wrong admin tries / 15 min per visitor, 8 code tries / 15 min, codes from
+  `crypto.randomInt`, constant-time password compare. Visitors are tracked by salted hash,
+  never by raw IP.
+- Invite codes now bind to the browser that redeemed them (HttpOnly cookie).
+- PDFs: bucket becomes private, PDF-only, 25 MB max; files are only served through the checked endpoints.
+- Security headers + a Content-Security-Policy in `vercel.json`. If any page misbehaves after
+  deploy, check the browser console for "Refused to ..." and tell me; removing the
+  `Content-Security-Policy` block is the quick undo.
+- Added a `.gitignore` (no more zips/env files in the repo).
+
+### Features
+
+- **Reply typing bug fixed.** `PostNode` was declared inside the Discussions component, so every
+  keystroke made React rebuild the thread and drop focus. Hoisted out; replies have their own state.
+- **Admin Archive.** Admin "Delete" is now "Archive": the item (with its replies/comments, or
+  every file in a batch) is copied into `admin_archive`, then removed from the site. The new
+  Archive tab shows everything that was saved and has a Restore button. If the copy fails, nothing
+  is deleted. PDFs stay in storage so restores are complete.
+- **One upload = one resource.** Files uploaded together share a `batch_id`; each gets a role
+  (Paper / Answers / Extra; names like "memo" or "mark scheme" pre-select Answers). Browse, Past
+  Papers, Lesson Slides, search and the hub show one card with Preview/Download per file, and
+  counts/trending treat a paper + answers as one. Admin archives a whole batch at once.
+
+### What this does NOT do (honest limits)
+
+- Anyone holding a valid code is a member and can read and post. Keep codes to people you trust;
+  reset or delete a code in the admin panel if it leaks.
+- Visitors' IPs are always visible to Vercel and Supabase (that's how the internet works) and
+  nothing here can change that. The site stores only salted hashes, and ships no names, emails,
+  links or source maps (checked). Your hosting accounts remain the one link to you; see the
+  earlier anonymity checklist.
+- Anything in the browser is readable by anyone who opens dev tools. That's why the real checks
+  live on the server and in the database, not in React.
+- I tested the handlers against an in-memory fake of Supabase (30 checks incl. forged tokens,
+  replayed codes, lockouts, archive failure) and parsed the SQL with Postgres's own parser, but I
+  could not run it against your live project. Follow the order above and test step 4.

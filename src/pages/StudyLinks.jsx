@@ -17,8 +17,16 @@ const BLOCKED_DOMAINS = [
 ]
 
 function getDomain(url) {
-  try { return new URL(url).hostname.replace(/^www\./, '') } catch { return null }
+  try {
+    const u = new URL(url)
+    // Only real web links. Without this, "javascript://example.com/%0aalert(1)" has a
+    // valid-looking hostname and would run script when someone clicked it.
+    if (u.protocol !== 'https:' && u.protocol !== 'http:') return null
+    return u.hostname.replace(/^www\./, '')
+  } catch { return null }
 }
+
+const isSafeUrl = (url) => /^https?:\/\//i.test(String(url || '')) && getDomain(url) !== null
 
 export default function StudyLinks() {
   const [submitted, setSubmitted] = useState([])
@@ -85,7 +93,7 @@ export default function StudyLinks() {
           ...submitted.map((s) => ({ id: s.id, name: s.name, url: s.url, subject: `Added by ${s.added_by}`, reportable: true })),
         ].map((l) => (
           <div key={l.id || l.url} className="flex items-center justify-between py-4 hover:bg-parchmentDark px-2 transition-colors">
-            <a href={l.url} target="_blank" rel="noreferrer" className="flex-1 min-w-0">
+            <a href={isSafeUrl(l.url) ? l.url : undefined} target="_blank" rel="noopener noreferrer" className="flex-1 min-w-0">
               <span className="font-display text-lg">{l.name}</span>
             </a>
             <div className="flex items-center gap-3 shrink-0">

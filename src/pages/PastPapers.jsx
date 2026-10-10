@@ -3,12 +3,14 @@ import { useSearchParams } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import { GRADES, SUBJECTS } from '../lib/device'
 import { GRADE9_COURSES } from '../lib/lessonFolders'
+import { groupFiles, roleLabel } from '../lib/batches'
 
 // Four pastel "compartments", cycled by index so neighboring cards never
 // repeat the same fill — like the actual sectioned trays a bento box has.
 const FILLS = ['bg-bentoBlush', 'bg-bentoMint', 'bg-bentoButter', 'bg-bentoSky']
 
 function BentoFileCard({ file, index, onPreview }) {
+  // `file` is one upload batch: a paper, and often its answers, on a single card
   return (
     <div
       className={`relative rounded-3xl p-5 shadow-bento hover:shadow-bentoHover transition-shadow ${FILLS[index % FILLS.length]}`}
@@ -25,23 +27,28 @@ function BentoFileCard({ file, index, onPreview }) {
 
       <div className="border-t border-dashed border-bentoWood/30 pt-3 mb-4">
         <p className="font-body text-[11px] text-bentoInkSoft">
-          Shared by {file.uploader_name} · {file.download_count || 0} downloads
+          Shared by {file.uploader_name} · {file.download_count} downloads
         </p>
       </div>
 
-      <div className="flex gap-2">
-        <button
-          onClick={onPreview}
-          className="font-body text-xs rounded-full border border-bentoWood/40 text-bentoInk px-3.5 py-1.5 hover:bg-bentoBox/50 transition-colors"
-        >
-          Preview
-        </button>
-        <a
-          href={`/api/download?id=${file.id}`}
-          className="font-body text-xs rounded-full bg-bentoStamp text-bentoCream px-3.5 py-1.5 hover:opacity-90 transition-opacity"
-        >
-          Download
-        </a>
+      <div className="space-y-2">
+        {file.files.map((f) => (
+          <div key={f.id} className="flex items-center gap-2">
+            {file.files.length > 1 && <span className="font-body text-[11px] text-bentoInk w-16">{roleLabel(f.role)}</span>}
+            <button
+              onClick={() => onPreview(f.id)}
+              className="font-body text-xs rounded-full border border-bentoWood/40 text-bentoInk px-3.5 py-1.5 hover:bg-bentoBox/50 transition-colors"
+            >
+              Preview
+            </button>
+            <a
+              href={`/api/download?id=${f.id}`}
+              className="font-body text-xs rounded-full bg-bentoStamp text-bentoCream px-3.5 py-1.5 hover:opacity-90 transition-opacity"
+            >
+              Download
+            </a>
+          </div>
+        ))}
       </div>
     </div>
   )
@@ -129,8 +136,8 @@ export default function PastPapers() {
           <p className="font-body text-bentoInkSoft">Nothing here yet — be the first to upload one.</p>
         ) : (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {filtered.map((f, i) => (
-              <BentoFileCard key={f.id} file={f} index={i} onPreview={() => setPreview(f)} />
+            {groupFiles(filtered).map((g, i) => (
+              <BentoFileCard key={g.key} file={g} index={i} onPreview={(id) => setPreview({ id, title: g.title })} />
             ))}
           </div>
         )}

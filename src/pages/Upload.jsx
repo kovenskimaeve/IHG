@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../supabaseClient'
 import { GRADES, SUBJECTS, sha256Hex, containsProfanity } from '../lib/device'
 import { GRADE_BANDS, SUBJECTS_BY_BAND, GRADE9_COURSES } from '../lib/lessonFolders'
+import { ROLES, guessRole } from '../lib/batches'
 
 const CATEGORIES = [
   { value: 'past_paper', label: 'Past paper' },
@@ -15,7 +16,7 @@ const RULES = [
   { ok: true, text: 'Answer keys are fine — just label them clearly' },
   { ok: true, text: 'School-provided official papers are welcome' },
   { ok: true, text: "Guides from other schools, YouTube, or creators are fine too" },
-  { ok: true, text: 'You can attach more than one file to a single upload' },
+  { ok: true, text: 'Attach the paper and its answers together: they appear as one resource' },
 ]
 
 export default function Upload() {
@@ -29,6 +30,7 @@ export default function Upload() {
   const [title, setTitle] = useState('')
   const [confirmed, setConfirmed] = useState(false)
   const [selectedFiles, setSelectedFiles] = useState([])
+  const [roles, setRoles] = useState([])
   const [status, setStatus] = useState('')
   const [busy, setBusy] = useState(false)
   const [myUploads, setMyUploads] = useState(0)
@@ -64,6 +66,7 @@ export default function Upload() {
     }
     setStatus('')
     setSelectedFiles(files)
+    setRoles(files.map((f) => guessRole(f.name))) // "memo", "answers", "mark scheme"... are pre-set to Answers
   }
 
   async function handleUpload() {
@@ -78,6 +81,7 @@ export default function Upload() {
     let uploaded = 0
     let skipped = 0
     const errors = []
+    const batchId = crypto.randomUUID() // everything in this submit belongs to one resource
 
     for (let i = 0; i < selectedFiles.length; i++) {
       const file = selectedFiles[i]
@@ -105,9 +109,7 @@ export default function Upload() {
       }
 
       const { data: urlData } = supabase.storage.from('papers').getPublicUrl(path)
-      const fileTitle = title.trim()
-        ? (selectedFiles.length > 1 ? `${title.trim()} (${i + 1})` : title.trim())
-        : file.name.replace(/\.pdf$/i, '')
+      const fileTitle = title.trim().slice(0, 200)
 
       const { error: insertError } = await supabase.from('files').insert({
         type: category,
@@ -116,8 +118,10 @@ export default function Upload() {
         title: fileTitle,
         file_url: urlData.publicUrl,
         file_hash: hash,
-        uploader_name: finalName,
+        uploader_name: finalName.slice(0, 60),
         made_by_student: true,
+        batch_id: batchId,
+        file_role: roles[i] || 'paper',
       })
       if (insertError) {
         skipped++
@@ -129,6 +133,7 @@ export default function Upload() {
 
     setBusy(false)
     setSelectedFiles([])
+    setRoles([])
     if (uploaded > 0) {
       const next = myUploads + uploaded
       setMyUploads(next)
@@ -265,7 +270,23 @@ export default function Upload() {
             <input type="file" accept="application/pdf" multiple onChange={onPick} className="hidden" />
           </label>
           {selectedFiles.length > 0 && (
-            <p className="font-body text-xs text-inkSoft mt-2">{selectedFiles.length} file(s) selected</p>
+            <div className="mt-3 space-y-2">
+              <p className="font-body text-xs text-inkSoft">
+                {selectedFiles.length > 1 ? 'These upload as one resource. Mark which is which:' : '1 file selected'}
+              </p>
+              {selectedFiles.map((f, i) => (
+                <div key={f.name + i} className="flex items-center gap-2">
+                  <span className="font-body text-xs flex-1 min-w-0 truncate">{f.name}</span>
+                  <select
+                    value={roles[i] || 'paper'}
+                    onChange={(e) => setRoles((r) => r.map((v, k) => (k === i ? e.target.value : v)))}
+                    className="font-body text-xs border border-ink/20 bg-parchment px-2 py-1"
+                  >
+                    {ROLES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
+                  </select>
+                </div>
+              ))}
+            </div>
           )}
         </div>
 

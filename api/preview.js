@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { getMember } from './_lib/security.js'
 import { PDFDocument } from 'pdf-lib'
 
 const supabaseAdmin = createClient(
@@ -20,8 +21,13 @@ export default async function handler(req, res) {
     return res.status(500).send('Server misconfigured: missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY.')
   }
 
-  const id = req.query.id
-  if (!id) return res.status(400).send('Missing file id.')
+  // Files are only served to someone who has entered a valid access code.
+  if (process.env.SUPABASE_JWT_SECRET && !getMember(req)) {
+    return res.status(401).send('Please enter your access code on the site first.')
+  }
+
+  const id = String(req.query.id || '')
+  if (!/^[0-9a-f-]{36}$/i.test(id)) return res.status(400).send('Missing or invalid file id.')
 
   try {
     const { data: file, error: lookupError } = await supabaseAdmin
@@ -54,8 +60,9 @@ export default async function handler(req, res) {
     const outBytes = await out.save()
 
     res.setHeader('Content-Type', 'application/pdf')
+    res.setHeader('X-Content-Type-Options', 'nosniff')
     res.setHeader('Content-Disposition', 'inline; filename="preview.pdf"')
-    res.setHeader('Cache-Control', 'public, max-age=300')
+    res.setHeader('Cache-Control', 'private, no-store')
     return res.status(200).send(Buffer.from(outBytes))
   } catch (err) {
     console.error('[api/preview]', err)

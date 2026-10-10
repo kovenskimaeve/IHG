@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../supabaseClient'
 import { GRADES, SUBJECTS } from '../lib/device'
 import IndexCard from '../components/IndexCard'
+import { groupFiles } from '../lib/batches'
 
 const TITLES = {
   lesson_slide: 'Lesson slides',
@@ -72,15 +73,15 @@ export default function Browse({ category }) {
         <p className="font-body text-inkSoft">Nothing here yet — be the first to upload one.</p>
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {filtered.map((f) => (
+          {groupFiles(filtered).map((g) => (
             <IndexCard
-              key={f.id}
-              title={f.title}
-              grade={f.grade}
-              subject={f.subject}
-              meta={`Uploaded by ${f.uploader_name} · ${f.download_count || 0} downloads`}
-              onPreview={() => setPreview(f)}
-              downloadHref={`/api/download?id=${f.id}`}
+              key={g.key}
+              title={g.title}
+              grade={g.grade}
+              subject={g.subject}
+              meta={`Uploaded by ${g.uploader_name} · ${g.download_count} downloads`}
+              files={g.files}
+              onPreview={(id) => setPreview({ id, title: g.title })}
             />
           ))}
         </div>

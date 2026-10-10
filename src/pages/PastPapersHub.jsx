@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import { SUBJECTS, sha256Hex, containsProfanity } from '../lib/device'
 import { GRADE9_COURSES, subjectsForGrade } from '../lib/lessonFolders'
+import { groupFiles, guessRole, ROLES } from '../lib/batches'
 
 // MYP runs Grade 6-10; Grade 11 (DP) is intentionally not part of this hub.
 const MYP_GRADES = ['Grade 6', 'Grade 7', 'Grade 8', 'Grade 9', 'Grade 10']
@@ -265,6 +266,7 @@ export default function PastPapersHub() {
   const [dragActive, setDragActive] = useState(false)
   const [formOpen, setFormOpen] = useState(false)
   const [files, setFiles] = useState([])
+  const [roles, setRoles] = useState([])
   const [upGrade, setUpGrade] = useState('')
   const [upSubject, setUpSubject] = useState('')
   const [title, setTitle] = useState('')
@@ -280,7 +282,7 @@ export default function PastPapersHub() {
   const load = useCallback(async () => {
     const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
     const [p, e] = await Promise.all([
-      supabase.from('files').select('id, title, grade, subject, uploader_name, download_count, created_at').eq('type', 'past_paper'),
+      supabase.from('files').select('id, title, grade, subject, uploader_name, download_count, created_at, batch_id, file_role, type').eq('type', 'past_paper'),
       supabase.from('download_events').select('file_id').gte('created_at', weekAgo),
     ])
     setPapers(p.data || [])
@@ -292,29 +294,34 @@ export default function PastPapersHub() {
 
   const mypPapers = useMemo(() => papers.filter((f) => MYP_GRADES.includes(f.grade)), [papers])
 
+  const mypGroups = useMemo(() => groupFiles(mypPapers), [mypPapers])
+  const allGroups = useMemo(() => groupFiles(papers), [papers])
+
   const gradeCounts = useMemo(() => {
     const c = Object.fromEntries(MYP_GRADES.map((g) => [g, 0]))
-    mypPapers.forEach((f) => { c[f.grade]++ })
+    mypGroups.forEach((g) => { c[g.grade]++ })
     return c
-  }, [mypPapers])
+  }, [mypGroups])
 
   const trending = useMemo(() => {
+    // downloads of a paper and of its answers add up to one trending entry
+    const keyOf = Object.fromEntries(papers.map((f) => [f.id, f.batch_id || f.id]))
+    const byKey = Object.fromEntries(allGroups.map((g) => [g.key, g]))
     const tally = {}
-    events.forEach((ev) => { tally[ev.file_id] = (tally[ev.file_id] || 0) + 1 })
-    const byId = Object.fromEntries(papers.map((f) => [f.id, f]))
+    events.forEach((ev) => { const k = keyOf[ev.file_id]; if (k) tally[k] = (tally[k] || 0) + 1 })
     return Object.entries(tally)
-      .filter(([id]) => byId[id])
+      .filter(([k]) => byKey[k])
       .sort((a, b) => b[1] - a[1])
       .slice(0, 3)
-      .map(([id, n]) => ({ ...byId[id], weekCount: n }))
-  }, [events, papers])
+      .map(([k, n]) => ({ ...byKey[k], weekCount: n }))
+  }, [events, papers, allGroups])
 
   const totalDownloads = useMemo(() => papers.reduce((s, f) => s + (f.download_count || 0), 0), [papers])
   const subjectsCovered = useMemo(() => new Set(mypPapers.map((f) => f.subject)).size, [mypPapers])
 
   // grade + subject pairs that exist for that grade but have no paper yet
   const gaps = useMemo(() => {
-    const have = new Set(mypPapers.map((f) => `${f.grade}|${f.subject}`))
+    const have = new Set(mypGroups.map((f) => `${f.grade}|${f.subject}`))
     const all = []
     MYP_GRADES.forEach((g) => subjectsForGrade(g).forEach((s) => { if (!have.has(`${g}|${s}`)) all.push({ g, s }) }))
     for (let i = all.length - 1; i > 0; i--) {
@@ -323,7 +330,7 @@ export default function PastPapersHub() {
     }
     return all.slice(0, 4)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mypPapers.length])
+  }, [mypGroups.length])
 
   // keep the chosen subject valid when the grade changes
   useEffect(() => {
@@ -341,6 +348,7 @@ export default function PastPapersHub() {
     if (picked.some((f) => f.size < 3000)) return setStatus('That file looks empty or almost empty. Check it has content before uploading.')
     setStatus('')
     setFiles(picked)
+    setRoles(picked.map((f) => guessRole(f.name)))
   }
 
   useEffect(() => {
@@ -396,6 +404,7 @@ export default function PastPapersHub() {
     let uploaded = 0
     let skipped = 0
     let firstError = ''
+    const batchId = crypto.randomUUID() // one upload = one resource, even with several files
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i]
@@ -413,11 +422,13 @@ export default function PastPapersHub() {
         type: 'past_paper',
         grade: upGrade,
         subject: upSubject,
-        title: files.length > 1 ? `${title.trim()} (${i + 1})` : title.trim(),
+        title: title.trim().slice(0, 200),
         file_url: urlData.publicUrl,
         file_hash: hash,
-        uploader_name: finalName,
+        uploader_name: finalName.slice(0, 60),
         made_by_student: true,
+        batch_id: batchId,
+        file_role: roles[i] || 'paper',
       })
       if (insertError) { skipped++; firstError ||= `Database save failed: ${insertError.message}`; continue }
       uploaded++
@@ -426,6 +437,7 @@ export default function PastPapersHub() {
     setBusy(false)
     if (uploaded > 0) {
       setFiles([])
+      setRoles([])
       setTitle('')
       setConfirmed(false)
       load()
@@ -435,8 +447,8 @@ export default function PastPapersHub() {
   }
 
   function roll() {
-    if (papers.length === 0) return
-    const pick = () => papers[Math.floor(Math.random() * papers.length)]
+    if (allGroups.length === 0) return
+    const pick = () => allGroups[Math.floor(Math.random() * allGroups.length)]
     if (flipped) {
       setFlipped(false)
       setTimeout(() => { setRolled(pick()); setFlipped(true) }, 320)
@@ -454,7 +466,7 @@ export default function PastPapersHub() {
   }
 
   const dim = dragActive ? 'hub-dim' : ''
-  const totalMyp = mypPapers.length
+  const totalMyp = mypGroups.length
   const ladderFloor = Math.max(1, totalMyp * 0.7)
   const ready = selGrade && selSubject
   const short = (t, n) => (t.length > n ? `${t.slice(0, n - 1)}…` : t)
@@ -560,7 +572,7 @@ export default function PastPapersHub() {
               <section className={`hub-cell a-roll hub-flip p-0 ${dim}`} style={{ background: '#F0D2A0' }} aria-label="Roll a paper">
                 <div className={`hub-flip-inner ${flipped ? 'flipped' : ''}`}>
                   <div className="hub-face p-1.5">
-                    <button onClick={roll} disabled={papers.length === 0} className="w-full h-full disabled:opacity-50" aria-label="Roll a paper">
+                    <button onClick={roll} disabled={allGroups.length === 0} className="w-full h-full disabled:opacity-50" aria-label="Roll a paper">
                       <Takoyaki line1="Roll" line2="a paper" />
                     </button>
                   </div>
@@ -633,6 +645,23 @@ export default function PastPapersHub() {
                 <button onClick={() => inputRef.current?.click()} className="text-left rounded-xl border border-dashed border-bentoWood/50 px-3 py-2 font-body text-sm text-bentoInk">
                   {files.length === 0 ? 'Choose PDF…' : files.length === 1 ? files[0].name : `${files.length} PDFs selected`}
                 </button>
+                {files.length > 0 && (
+                  <div className="space-y-1.5">
+                    {files.length > 1 && <p className="font-body text-xs text-bentoInkSoft">These go up as one resource. Mark which is which:</p>}
+                    {files.map((f, i) => (
+                      <div key={f.name + i} className="flex items-center gap-2">
+                        <span className="font-body text-xs text-bentoInk flex-1 min-w-0 truncate">{f.name}</span>
+                        <select
+                          value={roles[i] || 'paper'}
+                          onChange={(e) => setRoles((r) => r.map((v, k) => (k === i ? e.target.value : v)))}
+                          className="font-body text-xs rounded-lg border border-bentoWood/30 bg-bentoCream text-bentoInk px-2 py-1"
+                        >
+                          {ROLES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
+                        </select>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 <div className="flex gap-2">
                   <select value={upGrade} onChange={(e) => setUpGrade(e.target.value)} className={`${field} flex-1`}>
                     <option value="">Grade</option>

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Search, X } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 import { GRADES, SUBJECTS } from '../lib/device'
+import { groupFiles, roleLabel } from '../lib/batches'
 
 const TYPE_LABELS = {
   past_paper: 'Past paper',
@@ -26,7 +27,7 @@ export default function HomeSearch() {
     let cancelled = false
     const t = setTimeout(async () => {
       setLoading(true)
-      let q = supabase.from('files').select('*').order('created_at', { ascending: false }).limit(8)
+      let q = supabase.from('files').select('*').order('created_at', { ascending: false }).limit(30)
       if (query.trim().length >= 2) q = q.ilike('title', `%${query.trim()}%`)
       if (grade) q = q.eq('grade', grade)
       if (subject) q = q.eq('subject', subject)
@@ -93,17 +94,22 @@ export default function HomeSearch() {
           {!loading && results.length === 0 && (
             <p className="font-body text-sm text-white/60 px-2 py-2">Nothing found — try different words, or request it.</p>
           )}
-          {!loading && results.map((f) => (
-            <div key={f.id} className="flex items-center justify-between gap-3 px-2 py-2.5 border-b border-white/10 last:border-0">
+          {!loading && groupFiles(results).slice(0, 8).map((g) => (
+            <div key={g.key} className="flex items-center justify-between gap-3 px-2 py-2.5 border-b border-white/10 last:border-0">
               <div className="min-w-0">
-                <p className="font-body text-sm text-white truncate">{f.title}</p>
+                <p className="font-body text-sm text-white truncate">{g.title}</p>
                 <p className="font-body text-xs text-white/50">
-                  {TYPE_LABELS[f.type]} · {f.grade} · {f.subject}
+                  {TYPE_LABELS[g.type]} · {g.grade} · {g.subject}
                 </p>
               </div>
-              <div className="flex gap-3 shrink-0">
-                <button onClick={() => setPreview(f)} className="font-body text-xs text-white/80 underline">Preview</button>
-                <a href={`/api/download?id=${f.id}`} className="font-body text-xs text-white/80 underline">Download</a>
+              <div className="flex flex-col gap-1 shrink-0">
+                {g.files.map((f) => (
+                  <div key={f.id} className="flex items-center gap-3 justify-end">
+                    {g.files.length > 1 && <span className="font-body text-xs text-white/50">{roleLabel(f.role)}</span>}
+                    <button onClick={() => setPreview({ id: f.id, title: g.title })} className="font-body text-xs text-white/80 underline">Preview</button>
+                    <a href={`/api/download?id=${f.id}`} className="font-body text-xs text-white/80 underline">Download</a>
+                  </div>
+                ))}
               </div>
             </div>
           ))}
