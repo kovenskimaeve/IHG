@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Search, X } from 'lucide-react'
 import { supabase } from '../supabaseClient'
-import { GRADES, SUBJECTS } from '../lib/device'
-import { groupFiles, roleLabel } from '../lib/batches'
+import { GRADES } from '../lib/device'
+import SubjectOptions from './SubjectOptions'
 
 const TYPE_LABELS = {
   past_paper: 'Past paper',
@@ -27,7 +27,7 @@ export default function HomeSearch() {
     let cancelled = false
     const t = setTimeout(async () => {
       setLoading(true)
-      let q = supabase.from('files').select('*').order('created_at', { ascending: false }).limit(30)
+      let q = supabase.from('files').select('*').order('created_at', { ascending: false }).limit(8)
       if (query.trim().length >= 2) q = q.ilike('title', `%${query.trim()}%`)
       if (grade) q = q.eq('grade', grade)
       if (subject) q = q.eq('subject', subject)
@@ -39,6 +39,11 @@ export default function HomeSearch() {
     }, 300)
     return () => { cancelled = true; clearTimeout(t) }
   }, [query, grade, subject, active])
+
+  async function handleDownload(file) {
+    await supabase.from('files').update({ download_count: (file.download_count || 0) + 1 }).eq('id', file.id)
+    window.open(file.file_url, '_blank')
+  }
 
   return (
     <div className="relative">
@@ -62,13 +67,13 @@ export default function HomeSearch() {
           style={{ colorScheme: 'dark' }}
         >
           <option value="" className="text-ink">All subjects</option>
-          {SUBJECTS.map((s) => <option key={s} value={s} className="text-ink">{s}</option>)}
+          <SubjectOptions grade={grade} optionClassName="text-ink" />
         </select>
       </div>
 
       <div className="flex flex-wrap gap-2 mt-3">
         <button
-          onClick={() => setGrade('')}
+          onClick={() => { setGrade(''); setSubject('') }}
           className={`font-body text-xs rounded-full px-3 py-1.5 border transition-colors ${
             grade === '' ? 'bg-white text-ink border-white' : 'border-white/25 text-white/70 hover:border-white/50'
           }`}
@@ -78,7 +83,7 @@ export default function HomeSearch() {
         {GRADES.map((g) => (
           <button
             key={g}
-            onClick={() => setGrade(grade === g ? '' : g)}
+            onClick={() => { setGrade(grade === g ? '' : g); setSubject('') }}
             className={`font-body text-xs rounded-full px-3 py-1.5 border transition-colors ${
               grade === g ? 'bg-white text-ink border-white' : 'border-white/25 text-white/70 hover:border-white/50'
             }`}
@@ -94,22 +99,17 @@ export default function HomeSearch() {
           {!loading && results.length === 0 && (
             <p className="font-body text-sm text-white/60 px-2 py-2">Nothing found — try different words, or request it.</p>
           )}
-          {!loading && groupFiles(results).slice(0, 8).map((g) => (
-            <div key={g.key} className="flex items-center justify-between gap-3 px-2 py-2.5 border-b border-white/10 last:border-0">
+          {!loading && results.map((f) => (
+            <div key={f.id} className="flex items-center justify-between gap-3 px-2 py-2.5 border-b border-white/10 last:border-0">
               <div className="min-w-0">
-                <p className="font-body text-sm text-white truncate">{g.title}</p>
+                <p className="font-body text-sm text-white truncate">{f.title}</p>
                 <p className="font-body text-xs text-white/50">
-                  {TYPE_LABELS[g.type]} · {g.grade} · {g.subject}
+                  {TYPE_LABELS[f.type]} · {f.grade} · {f.subject}
                 </p>
               </div>
-              <div className="flex flex-col gap-1 shrink-0">
-                {g.files.map((f) => (
-                  <div key={f.id} className="flex items-center gap-3 justify-end">
-                    {g.files.length > 1 && <span className="font-body text-xs text-white/50">{roleLabel(f.role)}</span>}
-                    <button onClick={() => setPreview({ id: f.id, title: g.title })} className="font-body text-xs text-white/80 underline">Preview</button>
-                    <a href={`/api/download?id=${f.id}`} className="font-body text-xs text-white/80 underline">Download</a>
-                  </div>
-                ))}
+              <div className="flex gap-3 shrink-0">
+                <button onClick={() => setPreview(f)} className="font-body text-xs text-white/80 underline">Preview</button>
+                <button onClick={() => handleDownload(f)} className="font-body text-xs text-white/80 underline">Download</button>
               </div>
             </div>
           ))}
@@ -123,8 +123,7 @@ export default function HomeSearch() {
               <p className="font-display text-lg text-ink">{preview.title}</p>
               <button onClick={() => setPreview(null)} className="font-body text-sm text-ink underline">Close</button>
             </div>
-            <iframe title={preview.title} src={`/api/preview?id=${preview.id}`} className="w-full h-[calc(100%-4.5rem)] border border-ink/20 rounded-xl" />
-            <p className="font-body text-xs text-white/50 mt-2 px-2">Showing a preview only — download for the full document.</p>
+            <iframe title={preview.title} src={preview.file_url} className="w-full h-[calc(100%-2rem)] border border-ink/20 rounded-xl" />
           </div>
         </div>
       )}

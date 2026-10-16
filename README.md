@@ -166,9 +166,6 @@ Required environment variables (Vercel → Settings → Environment Variables):
 | `SUPABASE_URL` | server (`api/`) | Same URL, no `VITE_` prefix |
 | `SUPABASE_SERVICE_ROLE_KEY` | server (`api/`) | Secret — bypasses RLS |
 | `ADMIN_PASSWORD` | server (`api/`) | Gates `/admin` and the privileged API actions |
-| `SUPABASE_JWT_SECRET` | server (`api/`) | Secret. Signs the session issued after a valid access code. Supabase → Project Settings → API → JWT secret |
-| `OPEN_ACCESS` | server (`api/`) | Optional. `true` lets visitors in without a code (use with `VITE_BETA_GATE_ENABLED=false` when the site goes public) |
-| `RATE_LIMIT_SALT` | server (`api/`) | Optional. Any random string; salts the hashed visitor ids used for rate limiting |
 | `VITE_BETA_GATE_ENABLED` | browser | Set to `false` to open the site to everyone; on by default |
 | `VITE_MAINTENANCE_MODE` | browser | Set to `true` for an emergency full-site takedown |
 

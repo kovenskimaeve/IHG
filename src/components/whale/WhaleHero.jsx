@@ -13,15 +13,16 @@ function Scene({ tint, controlsRef }) {
       <color attach="background" args={['#060a14']} />
       <fog attach="fog" args={['#060a14', 5, 20]} />
 
-      <ambientLight intensity={0.22} color="#3a5a7a" />
-      <directionalLight position={[1, 12, -2]} intensity={3.4} color="#dff0ff" />
-      <pointLight position={[-4, -1, 3]} intensity={0.5} color="#00d4ff" />
-      <pointLight position={[0, -2, 6]} intensity={0.25} color="#7b61ff" />
-      <pointLight position={[3, 2, 4]} intensity={0.3} color="#ffffff" />
+      <ambientLight intensity={0.9} color="#7fa3c4" />
+      <hemisphereLight args={['#bcd6ea', '#14304a', 0.8]} />
+      <directionalLight position={[1, 12, -2]} intensity={2.6} color="#dff0ff" />
+      <directionalLight position={[2, 3, 8]} intensity={1.2} color="#ffffff" />
+      <pointLight position={[-4, -1, 3]} intensity={25} color="#00d4ff" distance={20} />
+      <pointLight position={[0, -2, 6]} intensity={12} color="#7b61ff" distance={20} />
 
       <Sparkles count={220} scale={[16, 12, 10]} size={1.3} speed={0.15} opacity={0.4} color="#bcd6ea" />
 
-      <WhaleModel position={[0, -0.5, 0]} scale={1.8} rotation={[0, 0.6, 0]} tint={tint} />
+      <WhaleModel position={[1.3, 1.8, 0]} scale={1.8} rotation={[0, 0.6, 0]} tint={tint} />
 
       <OrbitControls
         ref={controlsRef}

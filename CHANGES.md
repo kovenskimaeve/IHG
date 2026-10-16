@@ -1,3 +1,32 @@
+# Latest update
+
+## Changed files
+- `src/components/whale/WhaleModel.jsx`, `WhaleHero.jsx` -- whale was invisible (see below)
+- `src/pages/Upload.jsx` -- rewritten: paper type, per-grade subjects, separate Grade 9 courses box
+- `src/pages/Browse.jsx`, `src/components/HomeSearch.jsx`, `src/components/IndexCard.jsx` -- per-grade subjects, paper-type filter + badge
+- `src/components/SubjectOptions.jsx` (new) -- shared per-grade subject dropdown
+- `src/lib/lessonFolders.js` -- Grade 6 subjects, `PAPER_TYPES`
+- `src/pages/Admin.jsx` -- shows paper type in the files list
+- `supabase/migration-8.sql` (new) -- adds `paper_type` / `paper_type_other` to `files`
+- `supabase/fresh-install.sql` (new) -- ONE script to set up a whole new Supabase project
+
+## Whale fix
+The GLB's material is ~98% metallic and the scene has no environment map, so it
+rendered near-black (only a sliver of its back caught the overhead light). Fixed by
+making the material matte, adding a faint self-lit pass from its own texture,
+brightening the scene lights, and shifting the whale so it clears the text card.
+
+## Moving to a new Supabase project
+1. Create the new project.
+2. SQL Editor -> run `supabase/fresh-install.sql`.
+3. Vercel -> Environment Variables -> update VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY,
+   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY -> redeploy.
+4. Re-create your beta invite codes in /admin (they live in the database).
+Old uploaded PDFs/rows do NOT move automatically -- export from the old project first
+(Table Editor -> Export CSV; Storage -> download the `papers` bucket) if you need them.
+
+---
+
 # What changed, and what you need to do
 
 ## Do these two things first — they fix most of it
@@ -190,51 +219,6 @@ risks fragmenting into a lot of near-empty channels. A filter on top of one
 shared channel gets you the "see only my grade" benefit without that
 downside, and it's easy to change later if activity grows and you want
 harder separation.
-
----
-
-## Round 4: download/preview proxy + Past Papers redesign
-
-No new migration this round. New dependency: **`pdf-lib`** (already added to
-`package.json` — `npm install` after pulling).
-
-**1. Downloads no longer expose the Supabase URL, and now register as real
-downloads.** New `api/download.js`: looks the file up server-side (service
-role, bypasses RLS), streams the bytes back with
-`Content-Disposition: attachment` and a clean filename built from the
-title. The download_count bump moved here too (was previously an anon
-client-side update that depended on a public UPDATE policy on `files` that,
-checking the schema, doesn't actually exist — so it was likely silently
-failing before). `Browse.jsx`, `LessonSlides.jsx`, `HomeSearch.jsx`, and
-`IndexCard.jsx` now link to `/api/download?id=<file id>` instead of calling
-`window.open()` on the raw file URL. Note: the `papers` storage bucket is
-still public (confirmed in `supabase/migration-7.sql`), so this hides the
-backend URL from the UI, but it isn't hard access control — someone with the
-raw URL directly could still fetch it. If you want real access control later
-(e.g. only signed-in students), that's a bigger change (private bucket +
-signed URLs) — happy to do that if you want it.
-
-**2. Preview is now actually capped**, not just visually framed. New
-`api/preview.js`: downloads the source PDF server-side, uses `pdf-lib` to
-cut it down to **min(2 pages, 20% of the document), at least 1 page**, and
-serves that trimmed copy for the iframe. Previously the iframe pointed
-straight at the full file, so "preview" was really just an in-page way to
-read the whole thing.
-
-**3. Past Papers now has its own look** — a warm pastel "bento box" theme
-(`src/pages/PastPapers.jsx`, wired up in `App.jsx` in place of the shared
-`Browse` component), distinct from the ocean home page and the
-parchment/library look everywhere else: rounded compartment cards in four
-pastel fills, a wood-toned filter tray, dashed "compartment divider" lines,
-and pill-shaped Preview/Download buttons. Lesson Slides and Study Guides
-keep the existing library look for now — you only asked for Past Papers
-first; say the word whenever you want the other two restyled similarly, I
-scoped the bento palette additions in `tailwind.config.js` so it's ready to
-extend.
-
-Also cleaned up two things that had crept back into the repo: the stray
-`supabase/src` duplicate-app folder, and two zip files that had ended up
-committed at the repo root.
 
 ---
 
@@ -499,113 +483,3 @@ Four separate things:
 **Action needed: run `supabase/migration-7.sql`** — it's the one migration
 this round, covering the storage fix, the `reports` table, and the `topic`
 column together.
-
----
-
-## Round 5: Past Papers hub (Screen 1 of 3)
-
-Run **`supabase/migration-8.sql`** in the Supabase SQL editor (adds `download_events`
-so "Trending this week" is a real 7-day ranking). `api/download.js` now logs one row
-per download. Until the migration is run, trending just shows empty dashed rows.
-
-- New `src/pages/PastPapersHub.jsx` at `/past-papers`: upload center (page-wide drop
-  zone), grade ladder (Grade 6-10, widths proportional to paper count), trending,
-  roll a paper, quiet stats, needs a paper, subject cloud, and an "Open the box"
-  action that appears once a grade and subject are both picked.
-- The previous grid is now at `/past-papers/browse` and reads `?grade=&subject=`.
-  It is a stand-in until Screen 2 (dense self-packing grid) replaces it.
-- MYP scope: Grade 11 (DP) is not shown on this hub.
-
-### Round 5b: hub redesigned as a real bento box
-
-- `/past-papers` now opens on the **cover of a closed bento box** (lacquer lid, sakura, seigaiha
-  waves, sleepy face, lift tab) with a clear "Open the box" button. Opening lifts the lid off.
-  "Close the lid" brings it back. Dropping a PDF on the lid also opens it.
-- Inside, every tile is a drawn food with the writing on the food: grade ladder = onigiri
-  (grade numeral on the rice, count on the nori; widths proportional to paper count), upload =
-  tamagoyaki, trending = three nigiri (rank on the rice, title on the salmon), roll a paper =
-  takoyaki, stats = cherry tomatoes (labels fade in on hover only), missing papers = dashed
-  empty compartments.
-- Subject is now a dropdown including the Grade 9 courses (and per-grade subject lists).
-  The browse page's subject filter includes courses too.
-- Fits one screen on desktop (no scrolling). Under 900px wide it stacks and scrolls.
-- The upload form is now a sheet that opens from the egg, so the tile stays clean.
-
-### Round 5c: packed, food-first layout
-
-- Every compartment is now the food itself (omelet, bamboo mat, shiso leaf, lettuce, takoyaki
-  batter), filled edge to edge, with the writing on the food. Original kawaii-style SVG foods
-  with faces and blush cheeks; no third-party artwork is used.
-- Onigiri: grade numeral on the nori, paper count on the pickled plum. Tamagoyaki: whole upload
-  tile is the omelet. Section labels sit on nori strips.
-- 8-column grid: rice balls strip on top, omelet + sushi plate in the middle, small foods below.
-
----
-
-## Round 6: security hardening, archive, batch uploads, reply fix
-
-### DEPLOY IN THIS ORDER (the order matters)
-
-1. **Vercel -> Settings -> Environment Variables:** add `SUPABASE_JWT_SECRET`
-   (Supabase -> Project Settings -> API -> JWT secret). Optionally add `RATE_LIMIT_SALT`
-   (any random string). **Do this before step 3**, otherwise the access-code screen
-   can't issue sessions and nobody can get into the site.
-2. **Supabase SQL editor:** run `supabase/migration-9.sql`. Purely additive, nothing closes.
-3. **Push this code** and let Vercel deploy. Everything still works as before.
-4. **Test the gate** in a private window: enter an invite code, browse, upload, post, download.
-   (Codes already redeemed before this update are treated as "claim once more": a tester
-   re-enters their own code once and it then binds to their browser.)
-5. **Only then** run `supabase/migration-10.sql` (the lockdown). From this moment the public
-   Supabase key alone can do nothing. If anything misbehaves, run
-   `supabase/emergency-reopen.sql` and tell me what you saw.
-6. Supabase -> Authentication -> turn **off** "Allow new users to sign up" (not needed by the
-   site; defense in depth). Change `ADMIN_PASSWORD` to a long passphrase (16+ chars), since
-   the old one could be guessed at without limit until this update.
-
-### What was actually wrong (and is now fixed)
-
-- **The access gate was only cosmetic.** `BetaGate` let anyone in if a localStorage value was
-  set (anyone can set it from the console), and the database was open to anyone holding the
-  public key in the JavaScript. Now the server issues a signed session after a valid code;
-  Supabase row-level security, `/api/download` and `/api/preview` all require it.
-- **Anyone could edit anyone's posts** (public UPDATE policies). Removed. Votes now go through
-  database functions (one per device); everything else needs `/api/admin`.
-- **Stored XSS in Study links** (`javascript://example.com/%0aalert(1)` passed the domain check).
-  Now http(s) only: checked on submit, on render, and by a database constraint.
-- **No brute-force protection** on the admin password or invite codes, and codes came from
-  `Math.random`. Now: 5 wrong admin tries / 15 min per visitor, 8 code tries / 15 min, codes from
-  `crypto.randomInt`, constant-time password compare. Visitors are tracked by salted hash,
-  never by raw IP.
-- Invite codes now bind to the browser that redeemed them (HttpOnly cookie).
-- PDFs: bucket becomes private, PDF-only, 25 MB max; files are only served through the checked endpoints.
-- Security headers + a Content-Security-Policy in `vercel.json`. If any page misbehaves after
-  deploy, check the browser console for "Refused to ..." and tell me; removing the
-  `Content-Security-Policy` block is the quick undo.
-- Added a `.gitignore` (no more zips/env files in the repo).
-
-### Features
-
-- **Reply typing bug fixed.** `PostNode` was declared inside the Discussions component, so every
-  keystroke made React rebuild the thread and drop focus. Hoisted out; replies have their own state.
-- **Admin Archive.** Admin "Delete" is now "Archive": the item (with its replies/comments, or
-  every file in a batch) is copied into `admin_archive`, then removed from the site. The new
-  Archive tab shows everything that was saved and has a Restore button. If the copy fails, nothing
-  is deleted. PDFs stay in storage so restores are complete.
-- **One upload = one resource.** Files uploaded together share a `batch_id`; each gets a role
-  (Paper / Answers / Extra; names like "memo" or "mark scheme" pre-select Answers). Browse, Past
-  Papers, Lesson Slides, search and the hub show one card with Preview/Download per file, and
-  counts/trending treat a paper + answers as one. Admin archives a whole batch at once.
-
-### What this does NOT do (honest limits)
-
-- Anyone holding a valid code is a member and can read and post. Keep codes to people you trust;
-  reset or delete a code in the admin panel if it leaks.
-- Visitors' IPs are always visible to Vercel and Supabase (that's how the internet works) and
-  nothing here can change that. The site stores only salted hashes, and ships no names, emails,
-  links or source maps (checked). Your hosting accounts remain the one link to you; see the
-  earlier anonymity checklist.
-- Anything in the browser is readable by anyone who opens dev tools. That's why the real checks
-  live on the server and in the database, not in React.
-- I tested the handlers against an in-memory fake of Supabase (30 checks incl. forged tokens,
-  replayed codes, lockouts, archive failure) and parsed the SQL with Postgres's own parser, but I
-  could not run it against your live project. Follow the order above and test step 4.

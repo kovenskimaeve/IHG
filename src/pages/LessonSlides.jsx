@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../supabaseClient'
 import { GRADE_BANDS, SUBJECTS_BY_BAND, GRADE9_COURSES } from '../lib/lessonFolders'
 import IndexCard from '../components/IndexCard'
-import { groupFiles } from '../lib/batches'
 
 function FolderTile({ title, subtitle, onClick }) {
   return (
@@ -54,6 +53,11 @@ export default function LessonSlides() {
       .subscribe()
     return () => { cancelled = true; supabase.removeChannel(sub) }
   }, [band, subject])
+
+  async function handleDownload(file) {
+    await supabase.from('files').update({ download_count: (file.download_count || 0) + 1 }).eq('id', file.id)
+    window.open(file.file_url, '_blank')
+  }
 
   function goHome() { setBand(null); setSubject(null) }
   function goBand() { setSubject(null) }
@@ -117,15 +121,15 @@ export default function LessonSlides() {
           <p className="font-body text-inkSoft">Nothing here yet — be the first to upload one.</p>
         ) : (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {groupFiles(files).map((g) => (
+            {files.map((f) => (
               <IndexCard
-                key={g.key}
-                title={g.title}
-                grade={g.grade}
-                subject={g.subject}
-                meta={`Uploaded by ${g.uploader_name} · ${g.download_count} downloads`}
-                files={g.files}
-                onPreview={(id) => setPreview({ id, title: g.title })}
+                key={f.id}
+                title={f.title}
+                grade={f.grade}
+                subject={f.subject}
+                meta={`Uploaded by ${f.uploader_name} · ${f.download_count || 0} downloads`}
+                onPreview={() => setPreview(f)}
+                onDownload={() => handleDownload(f)}
               />
             ))}
           </div>
@@ -139,8 +143,7 @@ export default function LessonSlides() {
               <p className="font-display text-lg">{preview.title}</p>
               <button onClick={() => setPreview(null)} className="font-body text-sm underline">Close</button>
             </div>
-            <iframe title={preview.title} src={`/api/preview?id=${preview.id}`} className="w-full h-[calc(100%-4.5rem)] border border-ink/20" />
-            <p className="font-body text-xs text-inkSoft mt-2 px-2">Showing a preview only — download for the full document.</p>
+            <iframe title={preview.title} src={preview.file_url} className="w-full h-[calc(100%-2rem)] border border-ink/20" />
           </div>
         </div>
       )}

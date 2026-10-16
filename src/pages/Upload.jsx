@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../supabaseClient'
-import { GRADES, SUBJECTS, sha256Hex, containsProfanity } from '../lib/device'
-import { GRADE_BANDS, SUBJECTS_BY_BAND, GRADE9_COURSES } from '../lib/lessonFolders'
-import { ROLES, guessRole } from '../lib/batches'
+import { GRADES, sha256Hex, containsProfanity } from '../lib/device'
+import { GRADE_BANDS, SUBJECTS_BY_BAND, GRADE9_COURSES, PAPER_TYPES, subjectsForGrade } from '../lib/lessonFolders'
 
 const CATEGORIES = [
   { value: 'past_paper', label: 'Past paper' },
@@ -16,21 +15,33 @@ const RULES = [
   { ok: true, text: 'Answer keys are fine — just label them clearly' },
   { ok: true, text: 'School-provided official papers are welcome' },
   { ok: true, text: "Guides from other schools, YouTube, or creators are fine too" },
-  { ok: true, text: 'Attach the paper and its answers together: they appear as one resource' },
+  { ok: true, text: 'You can attach more than one file to a single upload' },
 ]
+
+const selectCls = 'w-full font-body text-sm border border-ink/20 bg-parchment px-3 py-2'
+
+// Subjects offered for a given upload. Lesson slides pick a grade *band*
+// (Grade 6 / Grades 7-8 / Grade 9); everything else picks an exact grade.
+// Grade 9 courses are handled in their own box, so the 'Courses' folder
+// entry is filtered out of the plain subject list.
+function coreSubjectsFor(isLessonSlide, band, grade) {
+  return isLessonSlide
+    ? SUBJECTS_BY_BAND[band].filter((s) => s !== 'Courses')
+    : subjectsForGrade(grade)
+}
 
 export default function Upload() {
   const [category, setCategory] = useState('past_paper')
+  const [paperType, setPaperType] = useState('summative')
+  const [paperTypeOther, setPaperTypeOther] = useState('')
   const [grade, setGrade] = useState(GRADES[0])
-  const [subject, setSubject] = useState(SUBJECTS[0])
   const [band, setBand] = useState(GRADE_BANDS[0].id)
-  const [bandSubject, setBandSubject] = useState(SUBJECTS_BY_BAND[GRADE_BANDS[0].id][0])
-  const [course, setCourse] = useState(GRADE9_COURSES[0])
+  const [subject, setSubject] = useState(subjectsForGrade(GRADES[0])[0])
+  const [course, setCourse] = useState('') // '' = not a course
   const [uploaderName, setUploaderName] = useState('')
   const [title, setTitle] = useState('')
   const [confirmed, setConfirmed] = useState(false)
   const [selectedFiles, setSelectedFiles] = useState([])
-  const [roles, setRoles] = useState([])
   const [status, setStatus] = useState('')
   const [busy, setBusy] = useState(false)
   const [myUploads, setMyUploads] = useState(0)
@@ -43,12 +54,31 @@ export default function Upload() {
     })
   }, [])
 
-  const [useCourse, setUseCourse] = useState(false)
   const isLessonSlide = category === 'lesson_slide'
+  const isPastPaper = category === 'past_paper'
   const effectiveGrade = isLessonSlide ? band : grade
-  const effectiveSubject = isLessonSlide
-    ? (bandSubject === 'Courses' ? course : bandSubject)
-    : (grade === 'Grade 9' && useCourse ? course : subject)
+  const isGrade9 = effectiveGrade === 'Grade 9'
+  const coreSubjects = coreSubjectsFor(isLessonSlide, band, grade)
+  const effectiveSubject = isGrade9 && course ? course : subject
+  const statusIsOk = status === 'Uploading…' || /^Done — \d+ uploaded\.$/.test(status)
+
+  function changeCategory(next) {
+    setCategory(next)
+    setCourse('')
+    setSubject(coreSubjectsFor(next === 'lesson_slide', band, grade)[0])
+  }
+
+  function changeGrade(next) {
+    setGrade(next)
+    setCourse('')
+    setSubject(subjectsForGrade(next)[0])
+  }
+
+  function changeBand(next) {
+    setBand(next)
+    setCourse('')
+    setSubject(coreSubjectsFor(true, next, grade)[0])
+  }
 
   function onPick(e) {
     const files = Array.from(e.target.files || [])
@@ -66,13 +96,17 @@ export default function Upload() {
     }
     setStatus('')
     setSelectedFiles(files)
-    setRoles(files.map((f) => guessRole(f.name))) // "memo", "answers", "mark scheme"... are pre-set to Answers
   }
 
   async function handleUpload() {
     if (!title.trim()) return setStatus('Add a title for this resource.')
+    if (isPastPaper && paperType === 'other' && !paperTypeOther.trim()) {
+      return setStatus('You picked "Other" — say what kind of paper it is.')
+    }
     const finalName = uploaderName.trim() || 'Anonymous'
-    if (containsProfanity(finalName)) return setStatus('That display name isn\u2019t appropriate — pick another.')
+    if (containsProfanity(finalName) || containsProfanity(paperTypeOther)) {
+      return setStatus('Please keep names and labels appropriate.')
+    }
     if (!confirmed) return setStatus('Please confirm this follows the upload rules before submitting.')
     if (selectedFiles.length === 0) return setStatus('Choose at least one PDF.')
 
@@ -81,7 +115,6 @@ export default function Upload() {
     let uploaded = 0
     let skipped = 0
     const errors = []
-    const batchId = crypto.randomUUID() // everything in this submit belongs to one resource
 
     for (let i = 0; i < selectedFiles.length; i++) {
       const file = selectedFiles[i]
@@ -109,19 +142,19 @@ export default function Upload() {
       }
 
       const { data: urlData } = supabase.storage.from('papers').getPublicUrl(path)
-      const fileTitle = title.trim().slice(0, 200)
+      const fileTitle = selectedFiles.length > 1 ? `${title.trim()} (${i + 1})` : title.trim()
 
       const { error: insertError } = await supabase.from('files').insert({
         type: category,
         grade: effectiveGrade,
         subject: effectiveSubject,
+        paper_type: isPastPaper ? paperType : null,
+        paper_type_other: isPastPaper && paperType === 'other' ? paperTypeOther.trim() : null,
         title: fileTitle,
         file_url: urlData.publicUrl,
         file_hash: hash,
-        uploader_name: finalName.slice(0, 60),
+        uploader_name: finalName,
         made_by_student: true,
-        batch_id: batchId,
-        file_role: roles[i] || 'paper',
       })
       if (insertError) {
         skipped++
@@ -133,7 +166,6 @@ export default function Upload() {
 
     setBusy(false)
     setSelectedFiles([])
-    setRoles([])
     if (uploaded > 0) {
       const next = myUploads + uploaded
       setMyUploads(next)
@@ -177,68 +209,82 @@ export default function Upload() {
 
         <div>
           <label className="font-body text-xs text-inkSoft block mb-1">Category</label>
-          <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full font-body text-sm border border-ink/20 bg-parchment px-3 py-2">
+          <select value={category} onChange={(e) => changeCategory(e.target.value)} className={selectCls}>
             {CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
           </select>
         </div>
 
-        {isLessonSlide ? (
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="font-body text-xs text-inkSoft block mb-1">Grade</label>
-              <select
-                value={band}
-                onChange={(e) => { setBand(e.target.value); setBandSubject(SUBJECTS_BY_BAND[e.target.value][0]) }}
-                className="w-full font-body text-sm border border-ink/20 bg-parchment px-3 py-2"
-              >
-                {GRADE_BANDS.map((b) => <option key={b.id} value={b.id}>{b.id}</option>)}
-              </select>
+        {isPastPaper && (
+          <div className="border border-ink/15 bg-parchment p-4">
+            <p className="font-body text-xs text-inkSoft mb-2">Paper type</p>
+            <div className="flex gap-2" role="radiogroup" aria-label="Paper type">
+              {PAPER_TYPES.map((t) => {
+                const active = paperType === t.value
+                return (
+                  <button
+                    key={t.value}
+                    type="button"
+                    role="radio"
+                    aria-checked={active}
+                    onClick={() => setPaperType(t.value)}
+                    className={`flex-1 font-body text-sm py-2 border transition-colors ${
+                      active ? 'bg-library text-parchment border-library' : 'bg-parchmentDark text-ink border-ink/20 hover:border-library/50'
+                    }`}
+                  >
+                    {t.label}
+                  </button>
+                )
+              })}
             </div>
-            <div>
-              <label className="font-body text-xs text-inkSoft block mb-1">Subject</label>
-              <select value={bandSubject} onChange={(e) => setBandSubject(e.target.value)} className="w-full font-body text-sm border border-ink/20 bg-parchment px-3 py-2">
-                {SUBJECTS_BY_BAND[band].map((s) => <option key={s} value={s}>{s}</option>)}
-              </select>
-            </div>
-            {bandSubject === 'Courses' && (
-              <div className="col-span-2">
-                <label className="font-body text-xs text-inkSoft block mb-1">Course</label>
-                <select value={course} onChange={(e) => setCourse(e.target.value)} className="w-full font-body text-sm border border-ink/20 bg-parchment px-3 py-2">
-                  {GRADE9_COURSES.map((c) => <option key={c} value={c}>{c}</option>)}
-                </select>
-              </div>
+            {paperType === 'other' && (
+              <input
+                value={paperTypeOther}
+                onChange={(e) => setPaperTypeOther(e.target.value)}
+                maxLength={40}
+                placeholder="What kind? e.g. Mock exam, worksheet, unit test"
+                className="w-full font-body text-sm border border-ink/20 bg-parchmentDark px-3 py-2 mt-3"
+              />
             )}
           </div>
-        ) : (
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="font-body text-xs text-inkSoft block mb-1">Grade</label>
-              <select value={grade} onChange={(e) => setGrade(e.target.value)} className="w-full font-body text-sm border border-ink/20 bg-parchment px-3 py-2">
+        )}
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="font-body text-xs text-inkSoft block mb-1">Grade</label>
+            {isLessonSlide ? (
+              <select value={band} onChange={(e) => changeBand(e.target.value)} className={selectCls}>
+                {GRADE_BANDS.map((b) => <option key={b.id} value={b.id}>{b.id}</option>)}
+              </select>
+            ) : (
+              <select value={grade} onChange={(e) => changeGrade(e.target.value)} className={selectCls}>
                 {GRADES.map((g) => <option key={g} value={g}>{g}</option>)}
               </select>
-            </div>
-            <div>
-              <label className="font-body text-xs text-inkSoft block mb-1">Subject</label>
-              <select
-                value={useCourse ? 'Others' : subject}
-                onChange={(e) => {
-                  if (e.target.value === 'Others') setUseCourse(true)
-                  else { setUseCourse(false); setSubject(e.target.value) }
-                }}
-                className="w-full font-body text-sm border border-ink/20 bg-parchment px-3 py-2"
-              >
-                {SUBJECTS.map((s) => <option key={s} value={s}>{s}</option>)}
-                {grade === 'Grade 9' && <option value="Others">Others (pick a Grade 9 course)</option>}
-              </select>
-            </div>
-            {grade === 'Grade 9' && useCourse && (
-              <div className="col-span-2">
-                <label className="font-body text-xs text-inkSoft block mb-1">Course</label>
-                <select value={course} onChange={(e) => setCourse(e.target.value)} className="w-full font-body text-sm border border-ink/20 bg-parchment px-3 py-2">
-                  {GRADE9_COURSES.map((c) => <option key={c} value={c}>{c}</option>)}
-                </select>
-              </div>
             )}
+          </div>
+          <div>
+            <label className="font-body text-xs text-inkSoft block mb-1">Subject</label>
+            <select
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+              disabled={isGrade9 && !!course}
+              className={`${selectCls} ${isGrade9 && course ? 'opacity-40' : ''}`}
+            >
+              {coreSubjects.map((s) => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </div>
+        </div>
+
+        {isGrade9 && (
+          <div className="border border-library/30 bg-library/5 p-4">
+            <p className="stamp text-xs mb-1">Grade 9 courses</p>
+            <p className="font-body text-xs text-inkSoft mb-3">
+              Electives and programme courses live here, separate from the core subjects above.
+              Pick one to file this under the course instead.
+            </p>
+            <select value={course} onChange={(e) => setCourse(e.target.value)} className={selectCls}>
+              <option value="">Not a course — use the subject above</option>
+              {GRADE9_COURSES.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
           </div>
         )}
 
@@ -248,7 +294,7 @@ export default function Upload() {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="e.g. G10 Maths Unit 3 Practice Paper"
-            className="w-full font-body text-sm border border-ink/20 bg-parchment px-3 py-2"
+            className={selectCls}
           />
         </div>
 
@@ -258,7 +304,7 @@ export default function Upload() {
             value={uploaderName}
             onChange={(e) => setUploaderName(e.target.value)}
             placeholder="e.g. a Grade 10 student, or leave blank for Anonymous"
-            className="w-full font-body text-sm border border-ink/20 bg-parchment px-3 py-2"
+            className={selectCls}
           />
         </div>
 
@@ -270,23 +316,7 @@ export default function Upload() {
             <input type="file" accept="application/pdf" multiple onChange={onPick} className="hidden" />
           </label>
           {selectedFiles.length > 0 && (
-            <div className="mt-3 space-y-2">
-              <p className="font-body text-xs text-inkSoft">
-                {selectedFiles.length > 1 ? 'These upload as one resource. Mark which is which:' : '1 file selected'}
-              </p>
-              {selectedFiles.map((f, i) => (
-                <div key={f.name + i} className="flex items-center gap-2">
-                  <span className="font-body text-xs flex-1 min-w-0 truncate">{f.name}</span>
-                  <select
-                    value={roles[i] || 'paper'}
-                    onChange={(e) => setRoles((r) => r.map((v, k) => (k === i ? e.target.value : v)))}
-                    className="font-body text-xs border border-ink/20 bg-parchment px-2 py-1"
-                  >
-                    {ROLES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
-                  </select>
-                </div>
-              ))}
-            </div>
+            <p className="font-body text-xs text-inkSoft mt-2">{selectedFiles.length} file(s) selected</p>
           )}
         </div>
 
@@ -302,7 +332,9 @@ export default function Upload() {
           Anything reported by another student goes to a human moderator — nothing gets auto-banned off one flag.
         </p>
 
-        {status && <p className="font-body text-sm text-oxblood">{status}</p>}
+        {status && (
+          <p className={`font-body text-sm ${statusIsOk ? 'text-libraryDeep' : 'text-oxblood'}`}>{status}</p>
+        )}
 
         <button
           onClick={handleUpload}
