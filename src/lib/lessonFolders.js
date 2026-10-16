@@ -22,21 +22,7 @@ const G78_SUBJECTS = [
   'Individuals and Societies',
 ]
 
-// Grade 6 only has plain "Chinese" and "English" -- no Language & Literature /
-// Language & Acquisition split (that starts in Grade 7), and no LL/LA
-// Chinese Humanities split either.
-const G6_SUBJECTS = [
-  'Physical Education',
-  'Chinese',
-  'English',
-  'Design',
-  'Mathematics',
-  'Science',
-  'Chinese Humanities',
-  'Arts',
-  'Individuals and Societies',
-  'Information Technology (IT)',
-]
+const G6_SUBJECTS = [...G78_SUBJECTS, 'Information Technology (IT)']
 
 const G9_SUBJECTS = [
   'Extended Mathematics',
@@ -74,7 +60,7 @@ export function subjectsForGrade(grade) {
 }
 
 // Deduplicated union, for pages with no grade selector (Discussions, Requests)
-export const ALL_SUBJECTS = [...new Set([...G6_SUBJECTS, ...G78_SUBJECTS, ...G9_SUBJECTS, ...FALLBACK_SUBJECTS])]
+export const ALL_SUBJECTS = [...new Set([...G6_SUBJECTS, ...G78_SUBJECTS, ...G9_SUBJECTS])]
 
 // Two entries in your original Grade 9 Courses list looked run-together or
 // cut off when pasted — I split the first and left the second as sent;
@@ -101,16 +87,3 @@ export const GRADE9_COURSES = [
   'Shuyuan Latin 書院拉丁文',
   'Shuyuan Mathematics for Engineering 書院工程數學',
 ]
-
-// Past papers get tagged by assessment kind, separate from grade/subject.
-export const PAPER_TYPES = [
-  { value: 'summative', label: 'Summative' },
-  { value: 'formative', label: 'Formative' },
-  { value: 'other', label: 'Other' },
-]
-
-export function paperTypeLabel(file) {
-  if (!file?.paper_type) return null
-  if (file.paper_type === 'other') return file.paper_type_other ? `Other: ${file.paper_type_other}` : 'Other'
-  return PAPER_TYPES.find((t) => t.value === file.paper_type)?.label || null
-}

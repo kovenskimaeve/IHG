@@ -12,6 +12,65 @@ function formatDate(iso) {
   return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
 }
 
+function ReplyBox({ onSubmit }) {
+  // Own local state: typing here never re-renders (or re-mounts) the rest of the page.
+  const [text, setText] = useState('')
+  const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
+
+  async function send() {
+    if (busy) return
+    setBusy(true)
+    const err = await onSubmit(text)
+    setBusy(false)
+    if (err) setError(err)
+    else setText('')
+  }
+
+  return (
+    <div className="mb-3">
+      <textarea
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        placeholder="Your reply, with working shown..."
+        className="w-full font-body text-sm border border-ink/25 bg-parchmentDark px-3 py-2 h-16 resize-none mb-2"
+      />
+      {error && <p className="font-body text-xs text-oxblood mb-2">{error}</p>}
+      <button onClick={send} disabled={busy} className="bg-library text-parchment font-body text-xs px-4 py-2 shadow-card disabled:opacity-60">
+        Reply
+      </button>
+    </div>
+  )
+}
+
+// Declared at module level (NOT inside Discussions). When it lived inside, every keystroke made
+// React see a brand-new component type, unmount the whole thread and drop focus from the textarea.
+function PostNode({ post, depth, ctx }) {
+  const indent = Math.min(depth, MAX_VISUAL_INDENT)
+  const replies = ctx.childrenOf(post.id)
+  return (
+    <div className={indent > 0 ? 'ml-4 pl-4 border-l-2 border-ink/15 mt-3' : ''}>
+      <p className="stamp text-[10px] text-inkSoft mb-1">
+        {post.author_name}{post.grade ? ` · ${post.grade}` : ''} · {formatDate(post.created_at)}
+      </p>
+      {post.topic && <p className="font-display text-base mb-1">{post.topic}</p>}
+      <p className="font-body text-sm leading-relaxed mb-2 whitespace-pre-wrap">{post.body}</p>
+      <div className="flex items-center gap-4 mb-2">
+        <button onClick={() => ctx.onVote(post, 1)} className="font-body text-xs">▲ {post.upvotes || 0}</button>
+        <button onClick={() => ctx.onVote(post, -1)} className="font-body text-xs">▼ {post.downvotes || 0}</button>
+        <button onClick={() => ctx.setReplyOpenFor(ctx.replyOpenFor === post.id ? null : post.id)} className="font-body text-xs text-library underline">
+          Reply
+        </button>
+        <button onClick={() => ctx.onReport(post)} className="font-body text-xs text-inkSoft underline">Report</button>
+      </div>
+
+      {ctx.replyOpenFor === post.id && <ReplyBox onSubmit={(text) => ctx.onReply(post.id, text)} />}
+
+      {replies.map((r) => <PostNode key={r.id} post={r} depth={depth + 1} ctx={ctx} />)}
+    </div>
+  )
+}
+
 export default function Discussions() {
   const [category, setCategory] = useState('Q&A')
   const [subjectChoice, setSubjectChoice] = useState('General')
@@ -23,7 +82,6 @@ export default function Discussions() {
   const [topic, setTopic] = useState('')
   const [body, setBody] = useState('')
   const [replyOpenFor, setReplyOpenFor] = useState(null)
-  const [replyText, setReplyText] = useState('')
   const [error, setError] = useState('')
   const [reportTarget, setReportTarget] = useState(null)
 
@@ -51,45 +109,48 @@ export default function Discussions() {
     return () => supabase.removeChannel(sub)
   }, [channel, gradeFilter])
 
+  // Returns '' on success, or an error message to show.
   async function submitPost(parentId, text) {
-    if (!authorName.trim()) return setError('Add a display name first (or type Anonymous).')
-    if (!postGrade) return setError('Pick your grade level first.')
-    if (!parentId && !topic.trim()) return setError('Give this a short topic/title first.')
-    if (containsProfanity(authorName) || containsProfanity(text) || containsProfanity(topic)) return setError('Keep it appropriate, please.')
-    if (!text.trim()) return
-    setError('')
+    if (!authorName.trim()) return 'Add a display name first (or type Anonymous).'
+    if (!postGrade) return 'Pick your grade level first.'
+    if (!parentId && !topic.trim()) return 'Give this a short topic/title first.'
+    if (containsProfanity(authorName) || containsProfanity(text) || containsProfanity(topic)) return 'Keep it appropriate, please.'
+    if (!text.trim()) return 'Write something first.'
     const { error: insertError } = await supabase.from('discussion_posts').insert({
       channel,
       parent_id: parentId,
-      author_name: authorName.trim(),
+      author_name: authorName.trim().slice(0, 60),
       grade: postGrade,
-      topic: parentId ? null : topic.trim(),
-      body: text.trim(),
+      topic: parentId ? null : topic.trim().slice(0, 200),
+      body: text.trim().slice(0, 4000),
     })
-    if (insertError) {
-      setError(`Couldn't post: ${insertError.message}`)
-      return
-    }
-    if (parentId) {
-      setReplyText('')
-      setReplyOpenFor(null)
-    } else {
-      setBody('')
-      setTopic('')
-    }
+    if (insertError) return `Couldn't post: ${insertError.message}`
+    if (parentId) setReplyOpenFor(null)
     load()
+    return ''
+  }
+
+  async function postTopLevel() {
+    const err = await submitPost(null, body)
+    setError(err)
+    if (!err) { setBody(''); setTopic('') }
   }
 
   async function vote(post, delta) {
     const deviceId = getDeviceId()
-    const { error: voteErr } = await supabase.from('post_votes').insert({
-      post_id: post.id,
-      device_id: deviceId,
-      vote: delta,
-    })
-    if (voteErr) return
-    const field = delta > 0 ? 'upvotes' : 'downvotes'
-    await supabase.from('discussion_posts').update({ [field]: (post[field] || 0) + 1 }).eq('id', post.id)
+    // Voting goes through a database function so counts can't be set to arbitrary values.
+    const { error: voteErr } = await supabase.rpc('vote_post', { p_post: post.id, p_device: deviceId, p_vote: delta })
+    if (voteErr) {
+      // Function not installed yet (migration-9 not run): use the old route so voting keeps working.
+      if (voteErr.code === 'PGRST202') {
+        const { error: legacyErr } = await supabase.from('post_votes').insert({ post_id: post.id, device_id: deviceId, vote: delta })
+        if (legacyErr) return
+        const field = delta > 0 ? 'upvotes' : 'downvotes'
+        await supabase.from('discussion_posts').update({ [field]: (post[field] || 0) + 1 }).eq('id', post.id)
+        load()
+      }
+      return // already voted on this post from this device
+    }
     load()
   }
 
@@ -108,42 +169,13 @@ export default function Discussions() {
   const childrenOf = (id) => posts.filter((p) => p.parent_id === id)
   const topLevel = childrenOf(null)
 
-  function PostNode({ post, depth }) {
-    const indent = Math.min(depth, MAX_VISUAL_INDENT)
-    const replies = childrenOf(post.id)
-    return (
-      <div className={indent > 0 ? 'ml-4 pl-4 border-l-2 border-ink/15 mt-3' : ''}>
-        <p className="stamp text-[10px] text-inkSoft mb-1">
-          {post.author_name}{post.grade ? ` · ${post.grade}` : ''} · {formatDate(post.created_at)}
-        </p>
-        {post.topic && <p className="font-display text-base mb-1">{post.topic}</p>}
-        <p className="font-body text-sm leading-relaxed mb-2 whitespace-pre-wrap">{post.body}</p>
-        <div className="flex items-center gap-4 mb-2">
-          <button onClick={() => vote(post, 1)} className="font-body text-xs">▲ {post.upvotes || 0}</button>
-          <button onClick={() => vote(post, -1)} className="font-body text-xs">▼ {post.downvotes || 0}</button>
-          <button onClick={() => setReplyOpenFor(replyOpenFor === post.id ? null : post.id)} className="font-body text-xs text-library underline">
-            Reply
-          </button>
-          <button onClick={() => setReportTarget(post)} className="font-body text-xs text-inkSoft underline">Report</button>
-        </div>
-
-        {replyOpenFor === post.id && (
-          <div className="mb-3">
-            <textarea
-              value={replyText}
-              onChange={(e) => setReplyText(e.target.value)}
-              placeholder="Your reply, with working shown..."
-              className="w-full font-body text-sm border border-ink/25 bg-parchmentDark px-3 py-2 h-16 resize-none mb-2"
-            />
-            <button onClick={() => submitPost(post.id, replyText)} className="bg-library text-parchment font-body text-xs px-4 py-2 shadow-card">
-              Reply
-            </button>
-          </div>
-        )}
-
-        {replies.map((r) => <PostNode key={r.id} post={r} depth={depth + 1} />)}
-      </div>
-    )
+  const ctx = {
+    childrenOf,
+    replyOpenFor,
+    setReplyOpenFor,
+    onVote: vote,
+    onReport: setReportTarget,
+    onReply: submitPost,
   }
 
   return (
@@ -221,7 +253,7 @@ export default function Discussions() {
           className="w-full font-body text-sm border border-ink/25 bg-parchment px-3 py-2 h-24 resize-none mb-3"
         />
         {error && <p className="font-body text-sm text-oxblood mb-2">{error}</p>}
-        <button onClick={() => submitPost(null, body)} className="bg-library text-parchment font-body text-sm px-5 py-2 shadow-card hover:shadow-cardHover">
+        <button onClick={postTopLevel} className="bg-library text-parchment font-body text-sm px-5 py-2 shadow-card hover:shadow-cardHover">
           Post
         </button>
       </div>
@@ -230,7 +262,7 @@ export default function Discussions() {
         {topLevel.length === 0 && <p className="font-body text-inkSoft">No posts yet here — start one.</p>}
         {topLevel.map((post) => (
           <div key={post.id} className="tilt-card bg-parchment border border-ink/20 shadow-card p-5">
-            <PostNode post={post} depth={0} />
+            <PostNode post={post} depth={0} ctx={ctx} />
           </div>
         ))}
       </div>

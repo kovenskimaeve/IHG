@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../supabaseClient'
-import { SUBJECTS, containsProfanity } from '../lib/device'
+import { SUBJECTS, containsProfanity, getDeviceId } from '../lib/device'
 import { GRADE9_COURSES } from '../lib/lessonFolders'
 
 const REQUEST_TOPICS = [...SUBJECTS, ...GRADE9_COURSES, 'External resource (link, site, tool)']
@@ -61,7 +61,16 @@ export default function Requests() {
   }
 
   async function vote(r, field) {
-    await supabase.from('resource_requests').update({ [field]: (r[field] || 0) + 1 }).eq('id', r.id)
+    const delta = field === 'upvotes' ? 1 : -1
+    const { error: voteErr } = await supabase.rpc('vote_request', { p_request: r.id, p_device: getDeviceId(), p_vote: delta })
+    if (voteErr) {
+      if (voteErr.code === 'PGRST202') {
+        // migration-9 not run yet: use the old route so voting keeps working
+        await supabase.from('resource_requests').update({ [field]: (r[field] || 0) + 1 }).eq('id', r.id)
+        load()
+      }
+      return // already voted from this device
+    }
     load()
   }
 
