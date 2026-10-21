@@ -1,0 +1,611 @@
+# What changed, and what you need to do
+
+## Do these two things first — they fix most of it
+
+### 1. Run the SQL migration
+Open your **Supabase project → SQL Editor → New query**, paste in the contents of
+`supabase/migration-3.sql`, and hit Run. This resets the sharing permissions
+(RLS policies) that control who can read/write what, and creates two new tables:
+`request_comments` (so Requests can be replied to) and `feedback` (a genuinely
+private table admins can read but nobody else can).
+
+Why this matters: the old `supabase/schema.sql` used
+`create policy if not exists ...`, which is **not valid PostgreSQL syntax**.
+That line almost certainly failed silently when you first ran it, which is the
+most likely reason posts/requests weren't behaving as fully public as the code
+intended.
+
+### 2. Check your Vercel environment variables
+Go to your Vercel project → **Settings → Environment Variables** and confirm
+all five of these are set (for Production *and* Preview):
+
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_ANON_KEY`
+- `SUPABASE_URL` (same value as above, no `VITE_` prefix — used by the admin API)
+- `SUPABASE_SERVICE_ROLE_KEY` (Supabase → Settings → API → service_role key. Keep this secret!)
+- `ADMIN_PASSWORD` (whatever password you want for `/admin`)
+
+**If you add or change any of these, you must trigger a new deploy** — Vite
+bakes `VITE_...` vars in at build time, so just saving them in Vercel isn't
+enough. A missing/wrong `VITE_SUPABASE_URL` is the classic cause of a
+`TypeError: Failed to fetch` showing up anywhere data is submitted.
+
+## Code fixes in this drop
+
+1. **Discussions/Requests visibility** — `supabase/migration-3.sql` re-asserts
+   public read+write policies on `discussion_posts` and `resource_requests`.
+   The front-end code was already written to show everyone's posts; the gap
+   was almost certainly the broken migration syntax above.
+2. **Requests had no commenting at all** — added a full reply/comment thread
+   under each request (`src/pages/Requests.jsx` + new `request_comments` table).
+3. **"TypeError" in green on Feedback** — two separate bugs, both fixed:
+   - `tailwind.config.js`: the `oxblood` color (used everywhere for errors/delete
+     buttons) was defined as a muted **green** (`#5C8A7A`) instead of red. Now
+     it's an actual dark red (`#8C3A3A`), so errors read as errors.
+   - `src/components/FeedbackButton.jsx` now wraps its Supabase call in
+     try/catch and shows a clear message instead of a raw error string.
+   - `src/supabaseClient.js` now logs a loud, specific console error if the
+     Supabase env vars are missing, instead of letting every request fail
+     with a cryptic fetch error.
+4. **Admin couldn't view/delete anything** — `src/pages/Admin.jsx` and
+   `api/admin.js` were rewritten so the admin panel *only* talks to the
+   privileged `/api/admin` serverless function (which uses your Supabase
+   **service role key** and completely bypasses RLS), for both reads and
+   writes. Previously it read data with the public anon key, so it was at the
+   mercy of the same broken RLS policies as everything else. Added a
+   **Requests** tab (was missing) and a delete button on **Feedback** (was
+   missing). Every tab now shows a clear error message inline if something
+   fails, instead of just looking empty.
+5. **Feedback privacy** — feedback now lives in its own `feedback` table with
+   no public SELECT policy at all, so it's enforced at the database level, not
+   just hidden in the UI. Previously it lived in `resource_requests` (subject
+   = `'Feedback'`), which had a public read policy — meaning anyone with
+   browser dev tools could query it directly, regardless of what the UI
+   showed. The feedback widget no longer shows a "everyone's feedback" feed
+   to visitors, since that contradicted it being private. The migration also
+   moves any existing feedback rows into the new table and removes them from
+   the public one.
+6. Removed a stray duplicate copy of the whole app that had ended up nested
+   inside `supabase/src/`, `supabase/api/`, etc. — it wasn't part of the
+   actual build (Vercel builds from the repo root), just dead weight that
+   made the repo confusing to navigate. Also removed a stray
+   `isf-holy-grail (1).zip` that was sitting in the repo root.
+
+## How to apply this
+
+Easiest path: copy these changed/added files over their counterparts in your
+GitHub repo, commit, and push (Vercel will redeploy automatically):
+
+- `tailwind.config.js`
+- `src/supabaseClient.js`
+- `src/pages/Discussions.jsx`
+- `src/pages/Requests.jsx`
+- `src/pages/Admin.jsx`
+- `src/components/FeedbackButton.jsx`
+- `api/admin.js`
+- `supabase/migration-3.sql` (new — run in Supabase SQL Editor, see above)
+
+Then run the SQL migration and double check the env vars as described above.
+I verified the whole project installs and builds cleanly (`npm install && npm run build`).
+
+---
+
+## Round 2: Home page aesthetics + usability
+
+New dependency: **`lucide-react`** (icons) — already added to `package.json`, just
+run `npm install` after pulling these files.
+
+1. **Cleared up the "mystery" hero labels.**
+   - "WHALE COLOR" → relabeled "Tint the whale" in normal sentence case, right
+     above the color swatches it controls.
+   - "SCROLL // EXPLORE" (a dead-end floating button that didn't actually do
+     anything) → replaced with a real **"Explore the archive ↓"** button
+     placed directly under the hero tagline, which smooth-scrolls down to the
+     archive section. Removed the now-unused `ScrollHint.jsx`.
+2. **Redesigned the four home cards** (`src/pages/Home.jsx`) as an asymmetric,
+   ocean-toned bento layout instead of identical white boxes: circular
+   "porthole" icon badges (`lucide-react`), a large Past Papers tile, live
+   counts pulled from your real data ("N papers shared", "N posts this week"
+   — genuine counts, not placeholder numbers), and a "+ Request a missing
+   file" link on the Past Papers card that jumps to `/requests`.
+3. **Added a real global search** (`src/components/HomeSearch.jsx`): a search
+   bar plus grade filter chips and a subject dropdown, sitting right above
+   the archive cards. It searches past papers, lesson slides, and study
+   guides together and lets you preview or download straight from the
+   results — no more digging through separate category pages first.
+4. **Spotlight cursor effect** (`src/components/SpotlightGlow.jsx`): a soft
+   glow that follows the pointer across the dark ocean band. Respects
+   `prefers-reduced-motion` (skips itself if the visitor has that set).
+5. The whole ocean gradient now runs continuously from the whale hero into
+   the archive section, rather than cutting abruptly to the flat parchment
+   background — ties the "ocean theme" through the whole landing page.
+
+Files touched/added this round: `src/pages/Home.jsx`,
+`src/components/whale/WhaleHero.jsx`, `src/components/HomeSearch.jsx` (new),
+`src/components/SpotlightGlow.jsx` (new), `package.json`. Removed
+`src/components/whale/ScrollHint.jsx` (dead code after the CTA rework).
+Verified with a clean `npm install && npm run build`.
+
+---
+
+## Round 3: Discussion grade filtering, glow tuning, ocean decor
+
+1. **`supabase/migration-4.sql`** — Discussions already tags each post with a
+   `grade` and has an "All grades" filter dropdown in the UI, but the
+   database itself had no `grade` column, so every post submission would
+   have failed with a Postgres error. Run this migration (after
+   migration-3.sql) to add the column — nullable, so nothing existing breaks.
+2. **Glow retuned** (`src/components/SpotlightGlow.jsx`): smaller and more
+   defined — a bright core fading to the ocean tint then to nothing by
+   ~70% — so it reads as a flashlight beam rather than a soft wash.
+3. **Ocean decor** (`src/components/OceanDecor.jsx`, new): a few low-opacity
+   line-art coral, kelp, and shell silhouettes scattered around the edges of
+   the archive section, swaying very slowly. They sit *behind* the spotlight
+   glow, so as the glow passes over them they light up a little — the
+   flashlight-discovering-things-in-the-dark effect. Kept subtle and off to
+   the sides so they don't compete with the cards or search bar. Respects
+   `prefers-reduced-motion` (sway turns off).
+
+---
+
+## Round 3: grade filter, ocean motifs, glow tuning
+
+1. **Discussions grade filter** — wired up end to end: posting requires
+   picking a grade, and there's an "All grades" / Grade 6–11 filter above the
+   thread. Added `supabase/migration-4.sql` (adds the `grade` column —
+   without it every post would fail). **Run this migration too.** Posts are
+   tagged with a grade rather than split into fully separate grade-only
+   rooms, so a Grade 11 Econ question and a Grade 9 one can still share a
+   subject thread by default, but you can narrow to just your grade when you
+   want to.
+2. **Ocean motifs** — added `src/components/OceanMotifs.jsx`: simple
+   line-art coral, shell, seaweed, and bubble motifs in the same thin-stroke
+   style as the existing icons. Each home card now has one tucked into its
+   corner (coral for Past Papers, bubbles for Lesson Slides, a shell for
+   Study Guides, seaweed for Discussions), and a quiet reef silhouette now
+   sits along the bottom edge of the ocean band.
+3. **Spotlight size** — already tuned to a ~320px beam with a bright core
+   that falls off quickly (a flashlight, not a floodlight) — left as is.
+
+---
+
+## Round 3: Grade-level differentiation in Discussions
+
+Run **`supabase/migration-4.sql`** in the Supabase SQL editor first — it adds
+a nullable `grade` column to `discussion_posts`. Nullable on purpose: it
+doesn't touch or hide any post that already exists, they just won't have a
+grade tag until someone replies/re-posts.
+
+- Posting now requires picking "Your grade" alongside your display name.
+- Browsing has an optional "All grades" / specific-grade filter next to the
+  subject picker — leave it on "All grades" to see everything like before, or
+  narrow to just your own grade.
+- Each post/reply's byline now shows the poster's grade when it has one
+  (older posts made before this migration just won't show a grade — that's
+  expected, not a bug).
+
+I didn't split channels per-grade at the database level (e.g. a separate
+"Mathematics · Grade 9" channel) because with a school-sized user base, that
+risks fragmenting into a lot of near-empty channels. A filter on top of one
+shared channel gets you the "see only my grade" benefit without that
+downside, and it's easy to change later if activity grows and you want
+harder separation.
+
+---
+
+## Round 4: download/preview proxy + Past Papers redesign
+
+No new migration this round. New dependency: **`pdf-lib`** (already added to
+`package.json` — `npm install` after pulling).
+
+**1. Downloads no longer expose the Supabase URL, and now register as real
+downloads.** New `api/download.js`: looks the file up server-side (service
+role, bypasses RLS), streams the bytes back with
+`Content-Disposition: attachment` and a clean filename built from the
+title. The download_count bump moved here too (was previously an anon
+client-side update that depended on a public UPDATE policy on `files` that,
+checking the schema, doesn't actually exist — so it was likely silently
+failing before). `Browse.jsx`, `LessonSlides.jsx`, `HomeSearch.jsx`, and
+`IndexCard.jsx` now link to `/api/download?id=<file id>` instead of calling
+`window.open()` on the raw file URL. Note: the `papers` storage bucket is
+still public (confirmed in `supabase/migration-7.sql`), so this hides the
+backend URL from the UI, but it isn't hard access control — someone with the
+raw URL directly could still fetch it. If you want real access control later
+(e.g. only signed-in students), that's a bigger change (private bucket +
+signed URLs) — happy to do that if you want it.
+
+**2. Preview is now actually capped**, not just visually framed. New
+`api/preview.js`: downloads the source PDF server-side, uses `pdf-lib` to
+cut it down to **min(2 pages, 20% of the document), at least 1 page**, and
+serves that trimmed copy for the iframe. Previously the iframe pointed
+straight at the full file, so "preview" was really just an in-page way to
+read the whole thing.
+
+**3. Past Papers now has its own look** — a warm pastel "bento box" theme
+(`src/pages/PastPapers.jsx`, wired up in `App.jsx` in place of the shared
+`Browse` component), distinct from the ocean home page and the
+parchment/library look everywhere else: rounded compartment cards in four
+pastel fills, a wood-toned filter tray, dashed "compartment divider" lines,
+and pill-shaped Preview/Download buttons. Lesson Slides and Study Guides
+keep the existing library look for now — you only asked for Past Papers
+first; say the word whenever you want the other two restyled similarly, I
+scoped the bento palette additions in `tailwind.config.js` so it's ready to
+extend.
+
+Also cleaned up two things that had crept back into the repo: the stray
+`supabase/src` duplicate-app folder, and two zip files that had ended up
+committed at the repo root.
+
+---
+
+## Round 4: fixed the broken archive section + a real crash bug
+
+You sent screenshots of the archive cards looking broken — jagged dark shape
+cutting through the text, card content overflowing its box. Found it:
+
+**The bug:** `ReefSilhouette` (a decorative thin reef strip meant to sit
+along the bottom of the dark archive section, ~80px tall) had its own
+hardcoded `style={{ width: '100%', height: '100%' }}` baked into the
+component. Inline styles always beat the CSS classes I was passing in
+(`h-14 md:h-20`), and since its container's height isn't fixed (it's sized by
+its content), that `height: 100%` didn't resolve to a sane number — the reef
+strip ballooned to hundreds of pixels tall and rendered on top of the cards
+instead of staying a thin strip underneath them. Fixed in
+`src/components/OceanMotifs.jsx` (removed the hardcoded inline size) and
+`src/pages/Home.jsx` (now explicitly passes `w-full` alongside the height
+classes, since the component no longer supplies its own).
+
+**A separate, more serious bug I found while testing the fix:** the whale
+hero loads its lighting/reflections from an external file
+(`raw.githack.com`, via drei's `Environment preset="sunset"`). If that
+request ever fails — a network hiccup, or (realistically, given this is a
+school site) a content filter blocking an unfamiliar CDN — the 3D scene threw
+an uncaught error, and because nothing in the app catches errors, **the
+entire site unmounted to a blank white page**. I removed that external
+dependency (the hero now uses only its own local lights — a small visual
+trade, but the models it actually needs are already self-hosted under
+`/models/`, so the hero has no third-party dependency left at all) and added
+`src/components/ErrorBoundary.jsx`, wrapped around the whale hero specifically
+and around the whole app in `src/App.jsx` as a last line of defense — so if
+anything, anywhere, throws an unexpected error in the future, that one
+section fails gracefully (a plain gradient, or a "Something broke — Reload"
+message) instead of taking down the whole page.
+
+**Also, while I had things open:** gave the four archive cards distinct
+accent colors pulled from the whale's own tint palette (blue / amber / teal /
+rose) instead of one flat cyan treatment on all four, and turned the
+"+ Request a missing file" link into a filled pill button — closer to the
+richer, more colorful feel of your inspo screenshot, without introducing
+external photography (would've meant either hotlinking someone else's images
+or a licensing question I'd rather you make deliberately, not by default).
+
+I rebuilt this one and actually loaded it in a headless browser to check the
+render, not just the build — screenshotted it before and after to confirm
+the fix, since the last two rounds I could only verify with `npm run build`
+succeeding, which doesn't catch layout bugs like this one.
+
+---
+
+## Round 5: redesigned the ocean floor strip
+
+You were right that the reef strip looked bad even after the width fix —
+jagged "shark tooth" zigzags with sparse, barely-visible thin twig shapes
+don't read as a reef at a glance. Rewrote `ReefSilhouette` in
+`src/components/OceanMotifs.jsx` from scratch:
+
+- The floor itself is now a smooth, gently rolling sandy seabed (bezier
+  curves) instead of a jagged rock zigzag.
+- Coral is now solid, layered, overlapping blob clusters (with a subtle
+  highlight) rather than thin 2px stroke lines — visible at a glance instead
+  of disappearing into the dark background.
+- Kelp is now a filled tapered blade shape instead of a bare stroked line, so
+  it actually reads as a plant.
+- Gave it a bit more vertical room (`h-32 md:h-48`, up from `h-24 md:h-36`)
+  so the coral and kelp aren't squashed.
+
+I also confirmed with a fresh headless-browser screenshot that the earlier
+width fix held — the strip does run edge-to-edge in the current code. If
+what you saw was still cut off, that screenshot was very likely from before
+you redeployed the Round 4 zip rather than a new bug; worth double-checking
+you're on the latest deploy after this one goes live too.
+
+---
+
+## Round 6: maintenance mode + how to shut things down in an emergency
+
+Two different tools for two different situations — read both before you need
+either one.
+
+### 1. Planned maintenance / "I need to edit something live" (a few minutes, not urgent)
+
+New env var: **`VITE_MAINTENANCE_MODE`**. Set it to `true` in Vercel
+(Settings → Environment Variables, Production), then redeploy (Vite env vars
+are baked in at build time, so this needs a rebuild — click the "..." on the
+latest deployment → Redeploy, doesn't need a new git push, takes about a
+minute). Every route except `/admin` will show a clean "Diving for a bit —
+back soon" screen instead of the real site. `/admin` still works normally so
+you can log in and check things while it's up. No data is touched — it's
+purely a front-end gate. Set it back to `false` and redeploy to bring the
+site back. I tested both states in a headless browser before shipping this
+(screenshots of the maintenance screen, and confirmed `/admin` stays
+reachable while everything else is blocked).
+
+### 2. Something is actively wrong right now (spam flood, abuse, possible compromise)
+
+Don't wait for a Vercel redeploy — the fastest kill switch doesn't involve
+Vercel at all:
+
+- **Fastest (seconds, no redeploy): rotate your Supabase anon key.**
+  Supabase dashboard → Settings → API → regenerate the `anon` `public` key.
+  Every student's browser is using that key for every read/write, so this
+  instantly breaks the entire public-facing site (pages will show load
+  errors) without touching any data. Your `service_role` key is separate and
+  unaffected, so `/api/admin` — and therefore `/admin` — keeps working, so
+  you can still see what happened and clean it up. When you're ready to
+  bring it back: update `VITE_SUPABASE_ANON_KEY` in Vercel to the new key
+  and redeploy.
+- **If it's specifically spam/abuse rather than a security issue:** you can
+  be more surgical — in the Supabase SQL Editor, run
+  `drop policy "public insert posts" on discussion_posts;` (swap the table/
+  policy name for whichever is being abused) to stop new writes while
+  reads still work. Re-add it later by re-running the relevant section of
+  `migration-3.sql`.
+- **If you suspect the GitHub repo or Vercel account itself was
+  compromised:** Vercel → Deployments → "..." on your last known-good
+  deployment → **Promote to Production** (this is Vercel's instant
+  rollback — takes effect in seconds, no rebuild). Then rotate your GitHub
+  and Vercel account passwords/tokens.
+
+For a real incident I'd reach for the anon key rotation first — it's the
+single fastest way to take the whole public site offline, it's reversible in
+one click, and it doesn't lock you out of `/admin` while you sort things
+out.
+
+---
+
+## Round 7: restrict the site to your 10 testers, with one-time codes
+
+Checked first: Vercel's built-in password protection isn't available on the
+Hobby (free) plan for your actual production URL — it's a $150/mo add-on on
+Pro, or included on Enterprise. Their free "Vercel Authentication" option
+only protects preview/auto-generated URLs, not the plain
+`isfholygrail.vercel.app` you're sharing. So I built this in the app itself.
+
+You specifically wanted codes that can't just be reused by whoever they get
+forwarded to, so this isn't one shared password — it's individual one-time
+codes, generated and tracked from the admin panel:
+
+- Run **`supabase/migration-5.sql`** in the Supabase SQL editor first. It
+  adds a `beta_invites` table that has **no public policies at all** — not
+  even insert — so codes can never be listed or guessed through the public
+  API. Only the server-side service-role key can touch it.
+- In `/admin`, a new **Beta codes** tab generates however many codes you
+  need (optionally labeled with tester names), each 6 characters using a
+  charset with no `0/O` or `1/I/L` so they're easy to read back over text or
+  email.
+- The whole site now sits behind a "Private testing — enter your invite
+  code" screen until a visitor enters a valid code. On success, that code is
+  marked used server-side and that browser remembers it (so they're not
+  asked again). If someone else then tries the same code, it's rejected —
+  the code only ever works for the first device that redeems it.
+- If a tester needs to switch devices, hit **Reset** next to their code in
+  the admin panel — that clears its "used" status so it'll work again once.
+- `/admin` always bypasses the gate, same as before, so you can never lock
+  yourself out.
+- New env var, off by default when unset: **`VITE_BETA_GATE_ENABLED`**. When
+  you're done with closed testing, set it to `false` in Vercel and redeploy
+  to open the site to everyone — no code changes needed, and the codes/table
+  just sit there unused afterward.
+
+I tested this in a headless browser before shipping it: the gate renders and
+blocks the home page by default, `/admin` bypasses it, and a rejected code
+shows the inline error correctly.
+
+**Worth knowing:** the redemption check and the codes themselves live
+server-side (unlike a simple shared password baked into the front-end), so
+this is meaningfully harder to bypass than the shared-code approach I
+considered first — but it's still built for keeping a casual link-share from
+spreading during a small test, not for withstanding a determined attacker
+targeting the database directly. Your Supabase URL and anon key are still
+visible in the public JS bundle, as with any Vite app.
+
+I also removed the earlier `AccessGate` component and `VITE_ACCESS_CODE` env
+var from an earlier pass at this same problem — this one-time-code system
+replaces it entirely rather than running alongside it.
+
+---
+
+## Round 8: made the invite gate actually behave as "one time"
+
+Three fixes, all from testing the gate for real:
+
+1. **Codes were effectively permanent, not one-time.** The redeemed token
+   was stored in `localStorage`, which survives closing the tab or even the
+   whole browser — so a tester never got asked again after their first visit.
+   Switched to `sessionStorage` in `src/components/BetaGate.jsx`: access now
+   lasts for that one browser session and clears when the tab/browser
+   closes. Since the code was already marked used on first redemption
+   (that part was always working), closing the tab and coming back now
+   correctly asks for a code again — and the old one won't work, matching
+   what you asked for.
+2. **Admin now never needs an invite code, anywhere on the site** — not just
+   on `/admin`. Logging into `/admin` with the real admin password now sets
+   a separate `localStorage` flag that `BetaGate` also checks, so once
+   you've logged in as admin on a browser, you can browse the whole public
+   site from that browser without hitting the gate. This one deliberately
+   uses `localStorage` (persists across sessions), unlike tester access —
+   you shouldn't have to re-prove you're the admin every time, the way
+   testers have to re-enter a code.
+3. **Live updates everywhere, not just Discussions/Requests.** Past papers,
+   lesson slides, study guides (`Browse.jsx`, `LessonSlides.jsx`), study
+   links (`StudyLinks.jsx`), and the live counts on the home page now all
+   subscribe to realtime changes the same way Discussions already did — a
+   new upload or post appears for everyone looking at that page without
+   them refreshing. This needed a database change too: **run
+   `supabase/migration-6.sql`** — Realtime only streams changes for tables
+   explicitly registered for it, and `files`/`study_links` were never
+   registered, so without this migration the new subscriptions would
+   silently do nothing.
+
+I tested the sessionStorage/admin-bypass behavior directly (set the gate's
+default-blocked state, then the admin flag, confirmed each) before shipping
+this round.
+
+---
+
+## Round 9: real threading, report-with-reason, topic titles, upload fix
+
+Four separate things:
+
+1. **Replies couldn't be replied to.** The database always supported
+   infinite nesting (`parent_id` is self-referencing), but the UI only ever
+   rendered one level and only put a Reply button on top-level posts.
+   Rewrote the rendering in `src/pages/Discussions.jsx` as a proper
+   recursive component (`PostNode`) — every post and every reply, at any
+   depth, now has its own Reply/Report/vote buttons. Visual indentation
+   caps out after 6 levels so a long thread doesn't drift off-screen, but
+   nesting itself has no limit.
+2. **No way to title what a post is actually about.** Interpreted "cannot
+   choose the subject being talked about" as: within a broad channel like
+   "Q&A · Mathematics", every post was just a wall of body text with no way
+   to tell what it's about at a glance. Added a required `topic` field
+   (short title) for new top-level posts — replies don't need one, they're
+   already under a topic. **Run `supabase/migration-7.sql`** for the new
+   `topic` column (nullable, so existing posts aren't affected).
+3. **Reports now ask why, like YouTube/Instagram, and don't auto-remove
+   anything.** Report used to silently increment a counter and auto-hide at
+   3 flags — no reason captured, no admin visibility into why. Now: Report
+   opens `src/components/ReportModal.jsx` (same component reused for Study
+   Links below), asking for a reason (Spam / Harassment / Inappropriate /
+   Wrong subject / Other) and optional detail, and inserts into a new
+   `reports` table — it no longer touches `hidden` at all. Admin's **Reports**
+   tab (replacing **Flagged**) is now the actual moderation queue: each
+   report shows the reason, detail, and a snapshot of what was reported
+   (captured at report time, so it's still visible even if later edited),
+   with Dismiss / Hide / Delete actions. **All posts** got an explicit Hide
+   button too, since hiding is now always a deliberate admin decision, never
+   automatic.
+4. **Study Links had no way to flag a bad site.** Added a Report button on
+   student-submitted links (not the curated ones, which aren't
+   database rows) using the same `ReportModal`. Admin's **Reports** tab
+   handles these too, and a new **Study links** tab lists/deletes any
+   submitted link directly.
+5. **Upload was failing: "new row violates row-level security policy."**
+   Toggling a Supabase bucket "Public" only grants public *read* access —
+   uploads go through Storage's own separate RLS on `storage.objects`, which
+   had no insert policy for the `papers` bucket at all. Fixed in
+   `supabase/migration-7.sql` alongside the two items above.
+
+**Action needed: run `supabase/migration-7.sql`** — it's the one migration
+this round, covering the storage fix, the `reports` table, and the `topic`
+column together.
+
+---
+
+## Round 5: Past Papers hub (Screen 1 of 3)
+
+Run **`supabase/migration-8.sql`** in the Supabase SQL editor (adds `download_events`
+so "Trending this week" is a real 7-day ranking). `api/download.js` now logs one row
+per download. Until the migration is run, trending just shows empty dashed rows.
+
+- New `src/pages/PastPapersHub.jsx` at `/past-papers`: upload center (page-wide drop
+  zone), grade ladder (Grade 6-10, widths proportional to paper count), trending,
+  roll a paper, quiet stats, needs a paper, subject cloud, and an "Open the box"
+  action that appears once a grade and subject are both picked.
+- The previous grid is now at `/past-papers/browse` and reads `?grade=&subject=`.
+  It is a stand-in until Screen 2 (dense self-packing grid) replaces it.
+- MYP scope: Grade 11 (DP) is not shown on this hub.
+
+### Round 5b: hub redesigned as a real bento box
+
+- `/past-papers` now opens on the **cover of a closed bento box** (lacquer lid, sakura, seigaiha
+  waves, sleepy face, lift tab) with a clear "Open the box" button. Opening lifts the lid off.
+  "Close the lid" brings it back. Dropping a PDF on the lid also opens it.
+- Inside, every tile is a drawn food with the writing on the food: grade ladder = onigiri
+  (grade numeral on the rice, count on the nori; widths proportional to paper count), upload =
+  tamagoyaki, trending = three nigiri (rank on the rice, title on the salmon), roll a paper =
+  takoyaki, stats = cherry tomatoes (labels fade in on hover only), missing papers = dashed
+  empty compartments.
+- Subject is now a dropdown including the Grade 9 courses (and per-grade subject lists).
+  The browse page's subject filter includes courses too.
+- Fits one screen on desktop (no scrolling). Under 900px wide it stacks and scrolls.
+- The upload form is now a sheet that opens from the egg, so the tile stays clean.
+
+### Round 5c: packed, food-first layout
+
+- Every compartment is now the food itself (omelet, bamboo mat, shiso leaf, lettuce, takoyaki
+  batter), filled edge to edge, with the writing on the food. Original kawaii-style SVG foods
+  with faces and blush cheeks; no third-party artwork is used.
+- Onigiri: grade numeral on the nori, paper count on the pickled plum. Tamagoyaki: whole upload
+  tile is the omelet. Section labels sit on nori strips.
+- 8-column grid: rice balls strip on top, omelet + sushi plate in the middle, small foods below.
+
+---
+
+## Round 6: security hardening, archive, batch uploads, reply fix
+
+### DEPLOY IN THIS ORDER (the order matters)
+
+1. **Vercel -> Settings -> Environment Variables:** add `SUPABASE_JWT_SECRET`
+   (Supabase -> Project Settings -> API -> JWT secret). Optionally add `RATE_LIMIT_SALT`
+   (any random string). **Do this before step 3**, otherwise the access-code screen
+   can't issue sessions and nobody can get into the site.
+2. **Supabase SQL editor:** run `supabase/migration-9.sql`. Purely additive, nothing closes.
+3. **Push this code** and let Vercel deploy. Everything still works as before.
+4. **Test the gate** in a private window: enter an invite code, browse, upload, post, download.
+   (Codes already redeemed before this update are treated as "claim once more": a tester
+   re-enters their own code once and it then binds to their browser.)
+5. **Only then** run `supabase/migration-10.sql` (the lockdown). From this moment the public
+   Supabase key alone can do nothing. If anything misbehaves, run
+   `supabase/emergency-reopen.sql` and tell me what you saw.
+6. Supabase -> Authentication -> turn **off** "Allow new users to sign up" (not needed by the
+   site; defense in depth). Change `ADMIN_PASSWORD` to a long passphrase (16+ chars), since
+   the old one could be guessed at without limit until this update.
+
+### What was actually wrong (and is now fixed)
+
+- **The access gate was only cosmetic.** `BetaGate` let anyone in if a localStorage value was
+  set (anyone can set it from the console), and the database was open to anyone holding the
+  public key in the JavaScript. Now the server issues a signed session after a valid code;
+  Supabase row-level security, `/api/download` and `/api/preview` all require it.
+- **Anyone could edit anyone's posts** (public UPDATE policies). Removed. Votes now go through
+  database functions (one per device); everything else needs `/api/admin`.
+- **Stored XSS in Study links** (`javascript://example.com/%0aalert(1)` passed the domain check).
+  Now http(s) only: checked on submit, on render, and by a database constraint.
+- **No brute-force protection** on the admin password or invite codes, and codes came from
+  `Math.random`. Now: 5 wrong admin tries / 15 min per visitor, 8 code tries / 15 min, codes from
+  `crypto.randomInt`, constant-time password compare. Visitors are tracked by salted hash,
+  never by raw IP.
+- Invite codes now bind to the browser that redeemed them (HttpOnly cookie).
+- PDFs: bucket becomes private, PDF-only, 25 MB max; files are only served through the checked endpoints.
+- Security headers + a Content-Security-Policy in `vercel.json`. If any page misbehaves after
+  deploy, check the browser console for "Refused to ..." and tell me; removing the
+  `Content-Security-Policy` block is the quick undo.
+- Added a `.gitignore` (no more zips/env files in the repo).
+
+### Features
+
+- **Reply typing bug fixed.** `PostNode` was declared inside the Discussions component, so every
+  keystroke made React rebuild the thread and drop focus. Hoisted out; replies have their own state.
+- **Admin Archive.** Admin "Delete" is now "Archive": the item (with its replies/comments, or
+  every file in a batch) is copied into `admin_archive`, then removed from the site. The new
+  Archive tab shows everything that was saved and has a Restore button. If the copy fails, nothing
+  is deleted. PDFs stay in storage so restores are complete.
+- **One upload = one resource.** Files uploaded together share a `batch_id`; each gets a role
+  (Paper / Answers / Extra; names like "memo" or "mark scheme" pre-select Answers). Browse, Past
+  Papers, Lesson Slides, search and the hub show one card with Preview/Download per file, and
+  counts/trending treat a paper + answers as one. Admin archives a whole batch at once.
+
+### What this does NOT do (honest limits)
+
+- Anyone holding a valid code is a member and can read and post. Keep codes to people you trust;
+  reset or delete a code in the admin panel if it leaks.
+- Visitors' IPs are always visible to Vercel and Supabase (that's how the internet works) and
+  nothing here can change that. The site stores only salted hashes, and ships no names, emails,
+  links or source maps (checked). Your hosting accounts remain the one link to you; see the
+  earlier anonymity checklist.
+- Anything in the browser is readable by anyone who opens dev tools. That's why the real checks
+  live on the server and in the database, not in React.
+- I tested the handlers against an in-memory fake of Supabase (30 checks incl. forged tokens,
+  replayed codes, lockouts, archive failure) and parsed the SQL with Postgres's own parser, but I
+  could not run it against your live project. Follow the order above and test step 4.
