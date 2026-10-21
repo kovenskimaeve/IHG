@@ -25,13 +25,33 @@ export default function WhaleModel({ tint, ...props }) {
       if (child.isMesh) {
         child.castShadow = true
         child.receiveShadow = true
-        materials.current.push(child.material)
+        // The GLB ships with a near-fully-metallic material. Metal only shows
+        // what it reflects, and this scene has no environment map, so the
+        // whale rendered almost black against the dark background (only a
+        // thin sliver of its back caught the overhead light). Use a matte,
+        // non-metallic skin, plus a faint self-lit pass from the same texture
+        // so the body stays readable from every angle.
+        const m = child.material
+        m.metalness = 0
+        m.metalnessMap = null
+        m.roughnessMap = null
+        m.roughness = 0.7
+        if (m.map) {
+          m.emissiveMap = m.map
+          m.emissive = new THREE.Color('#ffffff')
+          m.emissiveIntensity = 0.45
+        }
+        m.needsUpdate = true
+        materials.current.push(m)
       }
     })
   }, [actions, scene])
 
   useEffect(() => {
-    materials.current.forEach((m) => m.color.set(tint || '#ffffff'))
+    materials.current.forEach((m) => {
+      m.color.set(tint || '#ffffff')
+      if (m.emissive) m.emissive.set(tint || '#ffffff')
+    })
   }, [tint])
 
   useFrame((state, delta) => {

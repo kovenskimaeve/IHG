@@ -22,7 +22,21 @@ const G78_SUBJECTS = [
   'Individuals and Societies',
 ]
 
-const G6_SUBJECTS = [...G78_SUBJECTS, 'Information Technology (IT)']
+// Grade 6 only has plain "Chinese" and "English" -- no Language & Literature /
+// Language & Acquisition split (that starts in Grade 7), and no LL/LA
+// Chinese Humanities split either.
+const G6_SUBJECTS = [
+  'Physical Education',
+  'Chinese',
+  'English',
+  'Design',
+  'Mathematics',
+  'Science',
+  'Chinese Humanities',
+  'Arts',
+  'Individuals and Societies',
+  'Information Technology (IT)',
+]
 
 const G9_SUBJECTS = [
   'Extended Mathematics',
